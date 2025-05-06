@@ -1,6 +1,7 @@
 // Importar módulos necesarios
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('../../libraries/node_modules/discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder } = require('../../libraries/node_modules/discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('../../libraries/node_modules/@discordjs/voice');
+const fs = require('fs');
 const schedule = require('../../libraries/node_modules/node-schedule'); //temporal
 const variables = require('./Variables');
 
@@ -11,64 +12,106 @@ const variables = require('./Variables');
  * @param {Message} message - Mensaje recibido en el canal
  */
 async function manejarComandos(message) {
-    const args= message.content.trim().split(/ +/);                                                                   // Divide le mensaje en palabras separadas por espacios
-    const comando = args[0].toLowerCase();                                                                            // Obtiene el comando (Primera palabra de la cadena mensaje)
-  
-    switch (comando) {
-      case '-comandos':
-        mostrarComandos(message);
-        break;
-      case '-avatar':
-        enviarImagen(message, variables.IMAGE_PATHS.avatar, 'Aquí está tu imagen:');
-        break;
-      case '-banner':
-        enviarImagen(message, variables.IMAGE_PATHS.banner, 'Aquí está tu imagen:'); 
-        break;
-      case '-pececin':
-        enviarImagen(message, variables.IMAGE_PATHS.pececin, 'Aquí está tu imagen:');
-        break;
-      case '-cores':
-        enviarImagen(message, variables.IMAGE_PATHS.cores, 'Aquí está tu imagen:');
-        break;
-      case '-chanti':
-        enviarImagen(message, variables.IMAGE_PATHS.chanti, 'Aquí está tu imagen:');
-        break;
-      case '-esencia':
-      case 'esencia':                                                                                                 // Sobre este caso en específico, ya que puse JA JA JA JA, creí que quedaba mejor poner el texto abajo, implicando usar una función sobrecargada (lo cual no se puede en js) así que opté por un booleano
-        enviarImagen(message,  variables.IMAGE_PATHS.esencia, 'JA JA JA JA', true);                                   // Puse JA JA JA JA, pero funciona sin mandar nada de content aunque sea parametro de la función (extraño js)
-        //enviarMensaje(message, 'https://tenor.com/es/view/broly-villain-laughing-dragon-ball-z-dbz-gif-17670507');  // OPCIÓN mucho más fácil y eficiente, pero no me gusta como lo manda. Se tratará como imagen mejor
-        break;
-      case '-help':
-        enviarMensaje(message,'Pregúntale al Bios');
-        break;
-      case '-borrar':{     
-        const cantidad = args[1];
-        await borrarMensajes(message, Number(cantidad));
-        break;
+  const args = message.content.trim().split(/ +/); // Divide le mensaje en palabras separadas por espacios
+  const comando = args[0].toLowerCase();          // Obtiene el comando (Primera palabra de la cadena mensaje)
+
+  switch (comando) { //en este switch se permite joder con poner lo que te de la gana si pones al inicio lo que es, incluso en borrar si pones el comando al inicio y en algún momento un numero funciona igual
+    case '-comandos':
+      mostrarComandos(message);
+      break;
+    case '-avatar':
+      enviarImagen(message, variables.IMAGE_PATHS.avatar, 'Aquí está tu imagen:');
+      break;
+    case '-banner':
+      enviarImagen(message, variables.IMAGE_PATHS.banner, 'Aquí está tu imagen:');
+      break;
+    case '-pececin':
+      enviarImagen(message, variables.IMAGE_PATHS.pececin, 'Aquí está tu imagen:');
+      break;
+    case '-cores':
+      enviarImagen(message, variables.IMAGE_PATHS.cores, 'Aquí está tu imagen:');
+      break;
+    case '-chanti':
+      enviarImagen(message, variables.IMAGE_PATHS.chanti, 'Aquí está tu imagen:');
+      break;
+    case '-esencia':
+    case 'esencia':                                                                                                 // Sobre este caso en específico, ya que puse JA JA JA JA, creí que quedaba mejor poner el texto abajo, implicando usar una función sobrecargada (lo cual no se puede en js) así que opté por un booleano
+      enviarMensaje(message, 'Puede tardar un poquito, no desesperarse...');
+      enviarImagen(message, variables.IMAGE_PATHS.esencia, 'JA JA JA JA', true);                                    // Puse JA JA JA JA, pero funciona sin mandar nada de content aunque sea parametro de la función (extraño js)
+      //enviarMensaje(message, 'https://tenor.com/es/view/broly-villain-laughing-dragon-ball-z-dbz-gif-17670507');  // OPCIÓN mucho más fácil y eficiente, pero no me gusta como lo manda. Se tratará como imagen mejor
+      break;
+    case '-help':
+      enviarMensaje(message, 'Pregúntale al Bios');
+      break;
+    case '-borrar': {
+      const mensaje = message.content;
+      const numero = mensaje.match(/\d+/); // Extrae el número del mensaje
+      const cantidad = numero ? numero[0] : 0;
+      await borrarMensajes(message, Number(cantidad));
+      break;
+    }
+    case '-function.on':
+      gestionarMensajesRepetidos(message, true);
+      break;
+    case '-function.off':
+      gestionarMensajesRepetidos(message, false);
+      break;
+    case '-working.on':
+      activarActividadBios();
+      enviarMensaje(message, 'Listo, jefe.');
+      break;
+    case '-working.off':
+      desactivarActividadBios();
+      break;
+    case '-contar:':
+      enviarMensaje(message, `El mensaje tiene ${contarPalabras(message)} palabras.`);
+      break;
+    case '-play':
+      if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready'){
+        administrarPlaylist(message);
+        return;
       }
-      case '-function.on':
-        gestionarMensajesRepetidos(message, true);
-        break;
-      case '-function.off':
-        gestionarMensajesRepetidos(message, false);
-        break;
-      default: { // Para comandos de varias palabras (y no es -borrar [parámetro])
-        const mensajeCompleto = message.content.toLowerCase();
-  
-        if (mensajeCompleto === '7 palabras' || mensajeCompleto === '-7 palabras'){
+      enviarMensaje(message, '❌ Otro, qué no ves tú que ya está sonando algo o cómo. Para que carallo hay un comando de parar (-stop), mira a ver mejor si usas -chamba en vez de estar tocando los huevos. ❌');
+      break;
+    case '-stop':
+      if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready'){
+        enviarMensaje(message, '❌ Qué, tonto tú o qué, no ves que no estoy conectado. Dime, que vas a desconectar. Prueba cuando esté conectado o, mejor, prueba a ponerte a chambear. ❌');
+      }
+      detenerPlaylistBucle();
+      break;
+    default: { // Para comandos de varias palabras (y no es -borrar [parámetro]) // Se usan switches anidados porque es más eficiente que usar dos separados
+      const comandoEspecial = message.content.toLowerCase();
+
+      switch (comandoEspecial) { //en este switch por la naturaleza de los switches y de estos comandos, no se puede joder, hay que poner el comando exacto y ya sino no funciona (espero que sea entendible)
+        case '-7 palabras':
+        case '7 palabras':
           enviarMensaje(message, 'esencia');
-        } else if (mensajeCompleto === 'está el cores trabajando?') {
+          break;
+        case 'está el cores trabajando?':
           enviarMensaje(message, 'No sé, mira. Pero muy seguramente no');
-        } else if (mensajeCompleto === `<@${variables.USER_IDs.botPurgador}> chambeando por lo que veo`){
+          break;
+        case '-no cojan dibujo':
+        case 'no cojan dibujo':
+          enviarImagen(message, variables.IMAGE_PATHS.dibujo, 'Dibujante Mafioso', true);
+          break;
+        case `<@${variables.USER_IDs.botPurgador}> chambeando por lo que veo`:
           responderMensaje(message, 'Habló');
-        } else {
+          break;
+        case 'no reaction':
+          if (message.author.id === variables.USER_IDs.biosID) {
+            variables.GLOBAL_VARIABLES.biosReaction = false;
+          } break;
+        case 'reaction':
+          if (message.author.id === variables.USER_IDs.biosID) {
+            variables.GLOBAL_VARIABLES.biosReaction = true;
+          } break;
+        default:
           // No hacer nada si no coincide con ningún comando
-        }
-       
-        break;
+          break;
       }
     }
   }
+}
 
 /**
  * Envía una imagen  y un texto (dos mensajes) al canal donde se recibió el mensaje.
@@ -78,59 +121,67 @@ async function manejarComandos(message) {
  * @param {boolean} inverso - Si es `true`, envía primero la imagen y luego el texto.
  */
 async function enviarImagen(message, imagePath, content, inverso = false) { // Tiene que ser asíncrona para que los mensajes se manden bien en orden y tiene que ser dos porque discord impone (parece ya dictadura socialista) que si mandas en un mensaje imagen o gif y texto el texto arriba, jefe.
-    try{
-      // Configuración de parámetros según el valor de `inverso`
-      if(inverso){
-        // Imagen primero
-        await message.channel.send ({ files: [imagePath] });
-        await message.channel.send (content);
-      }else{
-        // Texto primero
-        await message.channel.send (content);
-        await message.channel.send ({ files: [imagePath] });
-      }
-    } catch (error){
-      console.error('Error al enviar la imagen o el texto:', error)
+  try {
+    // Configuración de parámetros según el valor de `inverso`
+    if (inverso) {
+      // Imagen primero
+      await message.channel.send({ files: [imagePath] });
+      await message.channel.send(content);
+    } else {
+      // Texto primero
+      await message.channel.send(content);
+      await message.channel.send({ files: [imagePath] });
     }
+  } catch (error) {
+    console.error('Error al enviar la imagen o el texto:', error)
   }
+}
 
 /**
  * Envía un mensaje al canal donde se recibió el mensaje.
  * @param {Message} message - Mensaje recibido
  * @param {string} content - Mensaje de texto que responde al mensaje inicial (como mensaje)
  */
-function enviarMensaje (message, content){
-    message.channel
-      .send({
-        content,
-      })
-      .catch((error) => console.error ('Error al enviar el mensaje:', error));
-  }
+function enviarMensaje(message, content) {
+  message.channel
+    .send({
+      content,
+    })
+    .catch((error) => console.error('Error al enviar el mensaje:', error));
+}
 
 /**
  * Responde a un mensaje al canal donde se recibió el mensaje.
  * @param {Message} message - Mensaje recibido
  * @param {string} content - Mensaje de texto que responde al mensaje inicial (como respuesta)
  */
-function responderMensaje (message, content){
+function responderMensaje(message, content) {
   message.
     reply({
       content,
     })
-    .catch((error) => console.error ('Error al responder al mensaje:', error));
+    .catch((error) => console.error('Error al responder al mensaje:', error));
+}
+
+function enviarMensajeCanalEspecifico(canalID, content) {
+  const canal = variables.CLIENT.channels.cache.get(canalID);
+  canal.send({
+    content,
+  })
+    .catch((error) => console.error('Error al enviar el mensaje en el canal dicho:', error));
 }
 
 /**
  * Programa el envío de una imagen a un canal específico a las 00:00 AM cada día y más cosa hay como 3 funciones aquí, no juzguen.
- */ 
+ */
 function programarEnvioDeImagen() {
   // Imagen de buenas noches a las 00:00
   schedule.scheduleJob('0 0 * * *', async () => {
-    const channel = client.channels.cache.get(variables.CANAL_IDs.mensajeNocturno);
+    const NightChannel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.mensajeNocturno);
 
-    if (channel) {
+    if (NightChannel) {
       try {
-        await channel.send({
+        await NightChannel.send({
           content: '¡Buenas noches! @here a dormir todo el mundo.',
           files: [variables.IMAGE_PATHS.sleep],
         });
@@ -145,11 +196,11 @@ function programarEnvioDeImagen() {
 
   // Imagen de buenos días a las 7:30
   schedule.scheduleJob('30 7 * * *', async () => {
-    const channel = client.channels.cache.get(variables.CANAL_IDs.mensajeNocturno); // Debería poner mensajeDiurno, pero ya es un coñazo no se si pondré al final todo purga y ya
+    const MorningChannel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.mensajeNocturno); // Debería poner mensajeDiurno, pero ya es un coñazo no sé si pondré al final todo purga y ya
 
-    if (channel) {
+    if (MorningChannel) {
       try {
-        await channel.send({
+        await MorningChannel.send({
           content: '¡Buenos días! @here buena suerte en la chamba, el Señor sea contigo.',
           files: [variables.IMAGE_PATHS.wakeUp],
         });
@@ -164,7 +215,7 @@ function programarEnvioDeImagen() {
 
   // Mensaje privado a las 01:00 para usuarios conectados
   schedule.scheduleJob('0 1 * * *', async () => {
-    const channel = client.channels.cache.get(variables.CANAL_IDs.checkOnline);
+    const channel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.checkOnline); // Nombre distinto porque todo esto tenía que estar en otra función al estar la misma se intenta reasignar el valro de una constante (no se puede)
 
     if (channel) {
       try {
@@ -174,25 +225,26 @@ function programarEnvioDeImagen() {
         const miembrosOnline = [];
 
         for (const member of members.values()) {
-          const presencia = obtenerPresenciaDeMiembro(channel.guild, member.id);
+          const presencia = await obtenerPresenciaDeMiembro(channel.guild, member.id);
           if (presencia !== 'offline') {
-            miembrosOnline.push(member);
+            miembroPresencia = { member: member, presencia: presencia };
+            miembrosOnline.push(miembroPresencia);
           }
         }
 
         if (miembrosOnline.length > 0) {
-          console.log('Miembros conectados:', miembrosOnline.map(member => member.user.tag).join(', '));
+          console.log('Miembros conectados:', miembrosOnline.map(miembroPresencia => `${miembroPresencia.member.user.tag} (${miembroPresencia.presencia})`).join(', '));
 
-          for (const member of miembrosOnline) {
+          for (const miembroPresencia of miembrosOnline) {
             try {
               // Enviar mensaje privado con una imagen específica
-              await member.send({
+              await miembroPresencia.member.send({
                 content: '😴 ¿Aún despierto? 😴',
                 files: [variables.IMAGE_PATHS.lateNight],
-               });
-              console.log(`Mensaje privado enviado a ${member.user.tag}`);
-             } catch (dmError) {
-              console.error(`Error al enviar mensaje privado a ${member.user.tag}:`, dmError);
+              });
+              console.log(`Mensaje privado enviado a ${miembroPresencia.member.user.tag}`);
+            } catch (dmError) {
+              console.error(`Error al enviar mensaje privado a ${miembroPresencia.member.user.tag}:`, dmError);
             }
           }
         } else {
@@ -217,7 +269,7 @@ function programarEnvioDeImagen() {
 async function obtenerPresenciaDeMiembro(guild, memberId) {
   try {
     const miembro = await guild.members.fetch(memberId);
-    const presencia = miembro.presence?.status || 'offline'; // Si no tiene presencia, se considera 'offline'
+    const presencia = miembro.presence?.status || 'offline';      // Si no tiene presencia, se considera 'offline'
     //console.log(`Estado de ${miembro.user.tag}: ${presencia}`); // No es necesario pues en la función en la que se llama sería lógica duplicada
     return presencia;
   } catch (error) {
@@ -245,10 +297,12 @@ function mostrarComandos(message) {
 - **esencia**: Muestra la verdadera esencia.
 - **7 palabras**: Esencia.
 - **está el cores trabajando?**: Muestra la verdad sobre la pregunta.
+- **no cojan dibujo**: Muestra una imagen mafiosa.
 - **@Purgador chambeando por lo que veo**: Da una cura de humildad.
 - **-help**: A ver, no sé, si ya usaste -comandos para lo que se supone que hace esto... Emmm... Es -comandos "avanzado".
 - **-function.on**: Activa mensajes repetitivos [**TEMPORAL** no abusen de esto que apago el bot y lo capo].
 - **-function.off**: Desactiva mensajes repetitivos.
+- **-stop**: Detiene la reproducción de audio en el canal de voz.
 `;
 
   const comandosAdministrador = `
@@ -338,13 +392,14 @@ async function borrarMensajes(message, cantidad) {
     message.reply('❌ Solo los administradores pueden usar este comando. ❌');
     return;
   }
-  if (!cantidad || isNaN(cantidad) || !Number.isInteger(Number(cantidad)) || cantidad <=0 || cantidad >99){    // Se valida que cantidad sea un número entero positivo en rango (100 es el límite impuesto por Discord para borrar de una vez, aquí pone 99 porque borra tú mensaje de petición tambien)
-    return message.reply ('❌ Por favor, especifica un número válido entre 1 y 99 para borrar mensajes. ❌');
+  if (!cantidad || isNaN(cantidad) || !Number.isInteger(Number(cantidad)) || cantidad <= 0 || cantidad > 99) { // Se valida que cantidad sea un número entero positivo en rango (100 es el límite impuesto por Discord para borrar de una vez, aquí pone 99 porque borra tú mensaje de petición tambien)
+    return message.reply('❌ Por favor, especifica un número válido entre 1 y 99 para borrar mensajes. ❌');
   }
   try {
     const mensajes = await message.channel.messages.fetch({ limit: cantidad + 1 });
     await message.channel.bulkDelete(mensajes, true);
     message.channel.send(`✅ Se han eliminado ${mensajes.size - 1} mensajes (sin incluir el propio comando). ✅`);
+    console.log(`Se han eliminado ${mensajes.size - 1} mensaje(s) en el canal #${message.channel.name} de la mano de ${message.author.username}`, funciones.formatDate(new Date()));
   } catch (error) {
     console.error('Error al borrar mensajes:', error);
     message.channel.send('❌ Ocurrió un error al intentar borrar los mensajes. ❌');
@@ -442,89 +497,263 @@ function esAdministrador(message) {
   return message.member.permissions.has('Administrator');
 }
 
-/**
+ /**
  * Función para programar la reproducción de un audio entre unas fechas concretas
  */
-function programarReproducciónDeAudio(){
+ function programarReproducciónDeAudio() {
+  // Obtenemos el año actual
+  const currentYear = new Date().getFullYear();
+  // Calculamos el próximo año
+  const nextYear = currentYear + 1;
+
+  // Construimos las fechas usando los años calculados
+  const startDate = new Date(`${currentYear}-12-08T00:00:00`); // No ponemos el clásico Z de UTC porque esto se va a ejecutar en invierno en España (UTC+1)
+  const endDate = new Date(`${nextYear}-01-08T23:59:59`);      // Ya veo a los espabilados diciendo de ajustar entonces la hora y ya, esto es javascript no puede ser una solución sencilla y eficiente...
+
   schedule.scheduleJob(
-    { start: new Date('2024-12-01T00:00:00Z'), end: new Date('2025-01-31T23:59:59Z'), rule: '*/1 * * * *' }, 
+    { start: startDate, end: endDate, rule: '*/5 * * * * *', tz: 'Europe/Madrid'},
     async () => {
-      if (!variables.GLOBAL_VARIABLES.connection ||variables.GLOBAL_VARIABLES.connection.state.status !== 'ready') {
+      if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready') {
         console.log('⏳ Conectando y configurando la reproducción... ⏳');
-        await reproducirAudioEnBucle();
+        await reproducirPlaylistEnBucle(variables.DATA_ESCTRUCTURES.cancionesNavidad, 2, variables.CANAL_IDs.ciudadVoice); // Cambia el canal de voz según sea necesario
       }
     }
   );
 }
 
 /**
- * Función para reproducir audio en bucle
+ * Función general para reproducir un array de canciones en bucle.
+ *
+ * @param {string[]} playlist - Array de claves de canciones (se usa para obtener la ruta en variables.AUDIO_PATHS).
+ * @param {number} repeticionesPorCancion - Número de veces que se reproduce una canción antes de cambiar a la siguiente.
+ * @param {string} [voiceChannelId=variables.CANAL_IDs.ciudadVoice] - (Opcional) ID del canal de voz a usar.
  */
-async function reproducirAudioEnBucle() {
-  const voiceChannel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.ciudadVoice);
+async function reproducirPlaylistEnBucle(playlist, repeticionesPorCancion, voiceChannelId = variables.CANAL_IDs.ciudadVoice) {
+  const voiceChannel = variables.CLIENT.channels.cache.get(voiceChannelId);
 
-  if (voiceChannel && voiceChannel.isVoiceBased()) {
-    try {
-      // Conectar al canal de voz si no está conectado
-      if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready') {
-        variables.GLOBAL_VARIABLES.connection = joinVoiceChannel({
-          channelId: voiceChannel.id,
-          guildId: voiceChannel.guild.id,
-          adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-        });
-      }
+  if (!voiceChannel || !voiceChannel.isVoiceBased()) {
+    console.error("❌ No se encontró un canal de voz válido. ❌");
+    return;
+  }
 
-      // Crear el reproductor de audio si no existe
-      if (!variables.GLOBAL_VARIABLES.player) {
-        variables.GLOBAL_VARIABLES.player = createAudioPlayer();
-        variables.GLOBAL_VARIABLES.connection.subscribe(variables.GLOBAL_VARIABLES.player);
-        console.log('🔊 Reproductor de audio configurado. 🔊');
-      }
-      
-       // Índice para la canción actual
-       let currentSongIndex = 0;
-
-       // Función para crear y reproducir el recurso de audio
-      const playAudio = () => {
-        const songKey = variables.DATA_ESCTRUCTURES.cancionesNavidad[currentSongIndex];
-        const resource = createAudioResource(variables.AUDIO_PATHS[songKey]);
-        variables.GLOBAL_VARIABLES.player.play(resource);
-      };
-
-      // Manejar el evento de finalización para reproducir en bucle
-      variables.GLOBAL_VARIABLES.player.on(AudioPlayerStatus.Idle, () => {
-        variables.GLOBAL_VARIABLES.playCount++; // Incrementa el contador de cada vez que el audio termina
-
-        // Solo muestra el mensaje cada 10 intercambios de canciones para no saturar la terminal
-        if (variables.GLOBAL_VARIABLES.playCount % (10*5*variables.DATA_ESCTRUCTURES.cancionesNavidad.length) === 0){
-          console.log(`🎵 El audio ha terminado de intercambiarse ${variables.GLOBAL_VARIABLES.playCount/10} veces. 🎵`); // No sé porque ni este emoji de notas musicales ni el otro aparecen en la terminal de VSCode, no me pregunten
-        }
-
-        // Cambiar de canción cada 5 reproducciones
-        if (variables.GLOBAL_VARIABLES.playCount % 5 === 0) {
-          currentSongIndex = (currentSongIndex + 1) % variables.DATA_ESCTRUCTURES.cancionesNavidad.length;
-        }
-
-        playAudio();
+  try {
+    // Conectar al canal de voz si no está conectado
+    if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready') {
+      variables.GLOBAL_VARIABLES.connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: voiceChannel.guild.id,
+        adapterCreator: voiceChannel.guild.voiceAdapterCreator,
       });
-      
-      // Manejo error audio
-      variables.GLOBAL_VARIABLES.player.on('error', error => {
-        console.error(`❌ Error en el reproductor de audio: ${error.message} ❌`);
-      });
-
-      // Iniciar la reproducción si no está activo
-      if (variables.GLOBAL_VARIABLES.player.state.status !== AudioPlayerStatus.Playing) {
-        console.log('🎶 Reproduciendo audio en bucle... 🎶');
-        playAudio();
-      }
-    } catch (error) {
-      console.error('❌ Error al intentar conectar al canal de voz: ❌', error);
     }
-  } else {
-    console.error('❌ No se encontró el canal de voz o no es un canal válido. ❌');
+
+    // Crear el reproductor de audio si no existe
+    if (!variables.GLOBAL_VARIABLES.player) {
+      variables.GLOBAL_VARIABLES.player = createAudioPlayer();
+      variables.GLOBAL_VARIABLES.connection.subscribe(variables.GLOBAL_VARIABLES.player);
+      console.log("🔊 Reproductor de audio configurado. 🔊");
+    }
+
+    let currentSongIndex = 0;
+    let playCount = 0;
+
+    // Función para reproducir la canción actual del playlist
+    const playAudio = () => {
+      const songKey = playlist[currentSongIndex];
+      // Se asume que variables.AUDIO_PATHS contiene las rutas indexadas por la key
+      const resource = createAudioResource(variables.AUDIO_PATHS[songKey]);
+      variables.GLOBAL_VARIABLES.player.play(resource);
+    };
+
+    // Manejo del evento Idle para reproducir en bucle
+    variables.GLOBAL_VARIABLES.player.on(AudioPlayerStatus.Idle, () => {
+      playCount++;
+
+      // Opcional: mostrar mensaje cada vez que se complete un ciclo del playlist
+      if (playCount % (repeticionesPorCancion * playlist.length) === 0) {
+        const n = playCount/(repeticionesPorCancion * playlist.length);
+        console.log(`🎵 Se han reproducido ${n} veces en total. 🎵`);
+      }
+
+      // Cambiar de canción cada 'repeticionesPorCancion' reproducciones
+      if (playCount % repeticionesPorCancion === 0) {
+        currentSongIndex = (currentSongIndex + 1) % playlist.length;
+      }
+
+      playAudio();
+    });
+
+    // Manejo de errores del reproductor
+    variables.GLOBAL_VARIABLES.player.on('error', error => {
+      console.error(`❌ Error en el reproductor de audio: ${error.message} ❌`);
+    });
+
+    // Iniciar la reproducción si el reproductor no está activo
+    if (variables.GLOBAL_VARIABLES.player.state.status !== AudioPlayerStatus.Playing) {
+      console.log("🎶 Reproduciendo audio en bucle... 🎶");
+      playAudio();
+    }
+  } catch (error) {
+    console.error("❌ Error al intentar conectar al canal de voz: ❌", error);
   }
 }
+
+
+  /**
+ * Función para detener la reproducción del playlist en bucle.
+ * Se detiene el reproductor de audio y se desconecta del canal de voz.
+ */
+  function detenerPlaylistBucle() {
+    // Si existe el reproductor, detenemos la reproducción.
+    if (variables.GLOBAL_VARIABLES.player) {
+      variables.GLOBAL_VARIABLES.player.stop();
+      console.log("🔇 Reproducción detenida en el reproductor de audio. 🔇");
+    }
+  
+    // Si existe la conexión al canal de voz, procedemos a destruirla.
+    if (variables.GLOBAL_VARIABLES.connection) {
+      variables.GLOBAL_VARIABLES.connection.destroy();
+      console.log("🔌 Desconectado del canal de voz. 🔌");
+    }
+    
+    // Reinicializamos las variables globales para dejar el estado limpio.
+    variables.GLOBAL_VARIABLES.player = null;
+    variables.GLOBAL_VARIABLES.connection = null;
+  }
+
+
+/**
+* Función que administra la selección de la cantidad de repeticiones y la playlist,
+* mostrando un mensaje interactivo con dos menús desplegables.
+* 
+* @param {Message} message Objeto del mensaje que disparó el comando.
+*/
+async function administrarPlaylist(message) {
+
+  // Array de opciones para playlists. Puedes agregar o modificar según tus datos.
+  const playlistArray = [
+      { label: 'Canciones Navideñas', description: 'Canciones que se voten para estas fechas tan señaladas', value: 'cancionesNavidad' },
+      { label: 'Salven Europa', description: 'Propaganda para llevarnos a Agartha', value: 'salvarEuropa' },
+      { label: 'No hay aún', description: 'No hay aún', value: 'No hay aún' }
+  ];
+
+  // Crear menú desplegable para la cantidad de repeticiones (1 a 5).
+  const quantitySelect = new StringSelectMenuBuilder()
+      .setCustomId('select_quantity')
+      .setPlaceholder('Repeticiones antes de cambiar de canción:')
+      .addOptions([
+          { label: '1', value: '1' },
+          { label: '2', value: '2' },
+          { label: '3', value: '3' },
+          { label: '4', value: '4' },
+          { label: '5', value: '5' }
+      ]);
+
+  // Crear menú desplegable para la selección de la playlist.
+  const playlistSelect = new StringSelectMenuBuilder()
+      .setCustomId('select_playlist')
+      .setPlaceholder('Playlist a reproducir:')
+      .addOptions(playlistArray);
+
+  // Colocar cada select menu en su propia fila de acción.
+  const rowQuantity = new ActionRowBuilder().addComponents(quantitySelect);
+  const rowPlaylist = new ActionRowBuilder().addComponents(playlistSelect);
+
+  // Crear un embed para informar al usuario
+  const embed = new EmbedBuilder()
+      .setTitle('Configurar Reproducción')
+      .setDescription('Por favor, selecciona la cantidad de repeticiones y la playlist a reproducir:');
+
+  // Enviar el mensaje al canal con el embed y los componentes.
+  const sentMessage = await message.channel.send({
+      embeds: [embed],
+      components: [rowQuantity, rowPlaylist]
+  });
+
+  // Creamos un collector para gestionar las interacciones (solo del autor del mensaje).
+  const filter = interaction => interaction.user.id === message.author.id;
+  const collector = sentMessage.createMessageComponentCollector({ filter, time: 60000 });
+
+  let selectedQuantity, selectedPlaylist;
+
+  collector.on('collect', async interaction => {
+      if (interaction.customId === 'select_quantity') {
+          // Convertimos la cantidad a número.
+          selectedQuantity = parseInt(interaction.values[0], 10);
+          await interaction.deferUpdate(); // Responder a la interacción para evitar que falle
+          //await interaction.reply({ content: `Seleccionaste reproducir ${selectedQuantity} vez/veces.`, ephemeral: true });
+      } else if (interaction.customId === 'select_playlist') {
+           // Usamos la clave para obtener la playlist real.
+          const key = interaction.values[0];
+          selectedPlaylist = variables.PLAYLISTS[key];
+          await interaction.deferUpdate(); // No quiero un mensaje goofy, pero tampoco quiero que falle
+          //await interaction.reply({ content: `Seleccionaste la playlist: ${selectedPlaylist}.`, ephemeral: true });
+      }
+
+      // Si se han realizado ambas selecciones, llamamos a la función para reproducir.
+      if (selectedQuantity && selectedPlaylist) {
+          collector.stop(); // Detener el collector
+          // Llamamos a la función que reproduce la playlist. Se asume que toma (cantidad, playlist).
+          reproducirPlaylistEnBucle(selectedPlaylist, selectedQuantity);
+          // Editamos el mensaje original para desactivar los componentes.
+          await sentMessage.edit({ components: [] });
+      }
+  });
+
+  collector.on('end', async () => {
+      if (!selectedQuantity || !selectedPlaylist) {
+          await message.channel.send('❌ No se completó la selección a tiempo. ❌');
+          await sentMessage.edit({ components: [] });
+      }
+  });
+}
+
+//función para poner bien la fecha en los console.log que necesitan fecha.
+
+function formatDate(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Los meses en JavaScript van de 0 a 11
+  const year = String(date.getFullYear()); // Obtener el año
+  const hours = String(date.getHours()).padStart(2, '0'); // Obtener las horas en formato 24h
+  const minutes = String(date.getMinutes()).padStart(2, '0'); // Obtener los minutos
+  const seconds = String(date.getSeconds()).padStart(2, '0'); // Obtener los segundos
+  fechaFormateada = `${hours}:${minutes}:${seconds} [${day}/${month}/${year}]`;
+  return fechaFormateada;
+}
+
+
+function contadorMesesDesarrollo() {
+  let numero;
+
+  // Intentar leer el archivo
+  try {
+      const contenido = fs.readFileSync(variables.FILE_PATHS.mesesDesarollo, 'utf8');
+      numero = parseInt(contenido, 10); // Convertir a número
+      if (isNaN(numero)) throw new Error('El contenido no es un número.');
+  } catch (err) {
+      console.error('Error al leer el archivo:', err);
+      return; // Salir de la función sin detener todo el programa MUY IMPORTANTE (y útil)
+  }
+
+  // Incrementar el número
+  numero += 1;
+
+  enviarMensajeCanalEspecifico(variables.CANAL_IDs.purga, `El bot lleva en desarrollo ${numero} meses.`);
+  console.log(`El bot lleva en desarrollo ${numero} meses.`, formatDate(new Date())); // Para ver en la terminal el mensaje de desarrollo del bot
+
+  // Escribir el nuevo valor en el archivo
+  try {
+      fs.writeFileSync(variables.FILE_PATHS.mesesDesarollo, numero.toString());
+      console.log('Número actualizado:', numero);
+  } catch (err) {
+      console.error('Error al escribir en el archivo:', err);
+  }
+}
+
+// Programar la ejecución de la función para el día 16 de cada mes a las 00:00
+// La cadena de cron '0 0 1 * *' se interpreta como: minuto 0, hora 0, día 1, cada mes, cada día de la semana.
+schedule.scheduleJob('34 13 16 * *', () => {
+  contadorMesesDesarrollo();
+});
 
 /**
  * Cuenta las palabras de un texto.
@@ -532,22 +761,41 @@ async function reproducirAudioEnBucle() {
  * @returns {number} Numero palabras en el mensaje.
  */
 function contarPalabras(message) {
-  // Elimina espacios en blanco al principio y al final y divide el texto en palabras
-  const palabras = message.trim().split(/\s+/);
-  return palabras.length;
+  const texto = message.content; // Obtenemos el contenido del mensaje
+  const palabras = texto.match(/\b[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+\b/g); // Captura solo palabras alfabéticas
+  return palabras ? palabras.length - 1 : 0; // Retornamos la cantidad de palabras encontradas (no tiene sentido la evaluación porque por la naturaleza del switch de comandos, y la lógica en general, nunca va a ser falsy)
 }
+
+function activarActividadBios() {
+  //Como al discord no le apetece ya detectarme cuando estoy en el puto VS Code, hago aquí aparte una entrada al Hashmap para meterme a mi mismo para que cuente el tiempo que estoy literalmente aquí que dependa de un booleano
+    variables.DATA_ESCTRUCTURES.activeGames.set(variables.USER_IDs.biosID, { game: 'Visual Studio Code', startTime: Date.now(), manual: true}); //extremadamente importante marcar entrada como manual, esta flag evita que el evento maneje la entrada según su lógica
+    console.log('biosbardo comenzó a jugar a Visual Studio Code', formatDate(new Date()));
+}
+
+function desactivarActividadBios() {
+  if(variables.DATA_ESCTRUCTURES.activeGames.has(variables.USER_IDs.biosID)) {
+    const { game, startTime } = variables.DATA_ESCTRUCTURES.activeGames.get(variables.USER_IDs.biosID);
+    const endTime = Date.now();
+    const durationMs = endTime - startTime;
+    const hours = Math.floor(durationMs / 3600000);
+    const minutes = Math.floor((durationMs % 3600000) / 60000);
+    const seconds = ((durationMs % 60000) / 1000).toFixed(2);
+    enviarMensajeCanalEspecifico(variables.CANAL_IDs.purga, `biosbardo dejó de jugar a ${game} después de ${hours}h ${minutes}m ${seconds}s.`);
+    console.log(`biosbardo dejó de jugar a ${game} después de ${hours}h ${minutes}m ${seconds}s.`, formatDate(new Date()));
+    variables.DATA_ESCTRUCTURES.activeGames.delete(variables.USER_IDs.biosID);
+  }
+}
+
 
 //Objeto con todas las funciones del archivo
 const funciones = Object.freeze({
-    manejarComandos,
-    enviarImagen,
-    enviarMensaje,
-    programarEnvioDeImagen,      //separar la lógica a un evento que llama a la función
-    mostrarComandos,
-    borrarMensajes,
-    gestionarMensajesRepetidos,
-    esAdministrador,
-    programarReproducciónDeAudio,
+  manejarComandos,
+  enviarMensajeCanalEspecifico,
+  programarEnvioDeImagen, //separar la lógica a un evento que llama a la función
+  esAdministrador,
+  programarReproducciónDeAudio,
+  formatDate,
+  contadorMesesDesarrollo,
 });
 
 //Exportar el objeto funciones con todas las funciones del archivo para poder usarlas en el index.js
