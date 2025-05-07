@@ -7,3 +7,6 @@
 /assets/chanti.png
 /assets/cores.png
 /assets/pececin.png
+
+#Ignore .git folder of the project
+/.git
