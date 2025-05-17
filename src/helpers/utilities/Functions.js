@@ -2,116 +2,10 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder } = require('../../libraries/node_modules/discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('../../libraries/node_modules/@discordjs/voice');
 const fs = require('fs');
-const schedule = require('../../libraries/node_modules/node-schedule'); //temporal
+const schedule = require('../../libraries/node_modules/node-schedule');
 const variables = require('./Variables');
 
 // ======== FUNCIONES ========
-
-/**
- * Maneja los comandos enviados por los usuarios en los canales donde el bot tiene acceso.
- * @param {Message} message - Mensaje recibido en el canal
- */
-async function manejarComandos(message) {
-  const args = message.content.trim().split(/ +/); // Divide le mensaje en palabras separadas por espacios
-  const comando = args[0].toLowerCase();          // Obtiene el comando (Primera palabra de la cadena mensaje)
-
-  switch (comando) { //en este switch se permite joder con poner lo que te de la gana si pones al inicio lo que es, incluso en borrar si pones el comando al inicio y en algún momento un numero funciona igual
-    case '-comandos':
-      mostrarComandos(message);
-      break;
-    case '-avatar':
-      enviarImagen(message, variables.IMAGE_PATHS.avatar, 'Aquí está tu imagen:');
-      break;
-    case '-banner':
-      enviarImagen(message, variables.IMAGE_PATHS.banner, 'Aquí está tu imagen:');
-      break;
-    case '-pececin':
-      enviarImagen(message, variables.IMAGE_PATHS.pececin, 'Aquí está tu imagen:');
-      break;
-    case '-cores':
-      enviarImagen(message, variables.IMAGE_PATHS.cores, 'Aquí está tu imagen:');
-      break;
-    case '-chanti':
-      enviarImagen(message, variables.IMAGE_PATHS.chanti, 'Aquí está tu imagen:');
-      break;
-    case '-esencia':
-    case 'esencia':                                                                                                 // Sobre este caso en específico, ya que puse JA JA JA JA, creí que quedaba mejor poner el texto abajo, implicando usar una función sobrecargada (lo cual no se puede en js) así que opté por un booleano
-      enviarMensaje(message, 'Puede tardar un poquito, no desesperarse...');
-      enviarImagen(message, variables.IMAGE_PATHS.esencia, 'JA JA JA JA', true);                                    // Puse JA JA JA JA, pero funciona sin mandar nada de content aunque sea parametro de la función (extraño js)
-      //enviarMensaje(message, 'https://tenor.com/es/view/broly-villain-laughing-dragon-ball-z-dbz-gif-17670507');  // OPCIÓN mucho más fácil y eficiente, pero no me gusta como lo manda. Se tratará como imagen mejor
-      break;
-    case '-help':
-      enviarMensaje(message, 'Pregúntale al Bios');
-      break;
-    case '-borrar': {
-      const mensaje = message.content;
-      const numero = mensaje.match(/\d+/); // Extrae el número del mensaje
-      const cantidad = numero ? numero[0] : 0;
-      await borrarMensajes(message, Number(cantidad));
-      break;
-    }
-    case '-function.on':
-      gestionarMensajesRepetidos(message, true);
-      break;
-    case '-function.off':
-      gestionarMensajesRepetidos(message, false);
-      break;
-    case '-working.on':
-      activarActividadBios();
-      enviarMensaje(message, 'Listo, jefe.');
-      break;
-    case '-working.off':
-      desactivarActividadBios();
-      break;
-    case '-contar:':
-      enviarMensaje(message, `El mensaje tiene ${contarPalabras(message)} palabras.`);
-      break;
-    case '-play':
-      if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready'){
-        administrarPlaylist(message);
-        return;
-      }
-      enviarMensaje(message, '❌ Otro, qué no ves tú que ya está sonando algo o cómo. Para que carallo hay un comando de parar (-stop), mira a ver mejor si usas -chamba en vez de estar tocando los huevos. ❌');
-      break;
-    case '-stop':
-      if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready'){
-        enviarMensaje(message, '❌ Qué, tonto tú o qué, no ves que no estoy conectado. Dime, que vas a desconectar. Prueba cuando esté conectado o, mejor, prueba a ponerte a chambear. ❌');
-      }
-      detenerPlaylistBucle();
-      break;
-    default: { // Para comandos de varias palabras (y no es -borrar [parámetro]) // Se usan switches anidados porque es más eficiente que usar dos separados
-      const comandoEspecial = message.content.toLowerCase();
-
-      switch (comandoEspecial) { //en este switch por la naturaleza de los switches y de estos comandos, no se puede joder, hay que poner el comando exacto y ya sino no funciona (espero que sea entendible)
-        case '-7 palabras':
-        case '7 palabras':
-          enviarMensaje(message, 'esencia');
-          break;
-        case 'está el cores trabajando?':
-          enviarMensaje(message, 'No sé, mira. Pero muy seguramente no');
-          break;
-        case '-no cojan dibujo':
-        case 'no cojan dibujo':
-          enviarImagen(message, variables.IMAGE_PATHS.dibujo, 'Dibujante Mafioso', true);
-          break;
-        case `<@${variables.USER_IDs.botPurgador}> chambeando por lo que veo`:
-          responderMensaje(message, 'Habló');
-          break;
-        case 'no reaction':
-          if (message.author.id === variables.USER_IDs.biosID) {
-            variables.GLOBAL_VARIABLES.biosReaction = false;
-          } break;
-        case 'reaction':
-          if (message.author.id === variables.USER_IDs.biosID) {
-            variables.GLOBAL_VARIABLES.biosReaction = true;
-          } break;
-        default:
-          // No hacer nada si no coincide con ningún comando
-          break;
-      }
-    }
-  }
-}
 
 /**
  * Envía una imagen  y un texto (dos mensajes) al canal donde se recibió el mensaje.
@@ -299,10 +193,16 @@ function mostrarComandos(message) {
 - **está el cores trabajando?**: Muestra la verdad sobre la pregunta.
 - **no cojan dibujo**: Muestra una imagen mafiosa.
 - **@Purgador chambeando por lo que veo**: Da una cura de humildad.
-- **-help**: A ver, no sé, si ya usaste -comandos para lo que se supone que hace esto... Emmm... Es -comandos "avanzado".
 - **-function.on**: Activa mensajes repetitivos [**TEMPORAL** no abusen de esto que apago el bot y lo capo].
 - **-function.off**: Desactiva mensajes repetitivos.
+- **-contar**: Cuenta la cantidad de palabras del texto puesto a continuación del comando (en el mismo mensaje).
+- **-play:**: Muestra un menú para seleccionar una playlist para reproducir en el canal de voz con la cantidad de repeticiones por canción que eligas.
 - **-stop**: Detiene la reproducción de audio en el canal de voz.
+- **-help**: A ver, no sé, si ya usaste -comandos para lo que se supone que hace esto... Emmm... Es -comandos "avanzado".
+- **-working.on**: Activa el resgistro de chamba en el VS Code porque discord no me lo quiere detectar (solo para Bios).
+- **-working.off**: Desactiva el resgistro de chamba en el VS Code porque discord no me lo quiere detectar (sigue siendo solo para Bios).
+- **reaction**: Hace que el bot vuelva a quererme.
+- **no reaction**: Hace que el bot y yo nos demos un tiempo (igualmente le nos seguimos amando)
 `;
 
   const comandosAdministrador = `
@@ -749,9 +649,9 @@ function contadorMesesDesarrollo() {
   }
 }
 
-// Programar la ejecución de la función para el día 16 de cada mes a las 00:00
+// Programar la ejecución de la función para el día 16 de cada mes a las 00:00 (no)
 // La cadena de cron '0 0 1 * *' se interpreta como: minuto 0, hora 0, día 1, cada mes, cada día de la semana.
-schedule.scheduleJob('34 13 16 * *', () => {
+schedule.scheduleJob('00 13 16 * *', () => {
   contadorMesesDesarrollo();
 });
 
@@ -787,15 +687,30 @@ function desactivarActividadBios() {
 }
 
 
+
+
+
 //Objeto con todas las funciones del archivo
 const funciones = Object.freeze({
-  manejarComandos,
+  enviarImagen,
+  enviarMensaje,
+  responderMensaje,
   enviarMensajeCanalEspecifico,
-  programarEnvioDeImagen, //separar la lógica a un evento que llama a la función
+  programarEnvioDeImagen,
+  obtenerPresenciaDeMiembro,
+  mostrarComandos,
+  borrarMensajes,
+  gestionarMensajesRepetidos,
   esAdministrador,
   programarReproducciónDeAudio,
+  reproducirPlaylistEnBucle,
+  detenerPlaylistBucle,
+  administrarPlaylist,
   formatDate,
   contadorMesesDesarrollo,
+  contarPalabras,
+  activarActividadBios,
+  desactivarActividadBios,
 });
 
 //Exportar el objeto funciones con todas las funciones del archivo para poder usarlas en el index.js

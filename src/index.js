@@ -1,5 +1,5 @@
 // Importar módulos necesarios
-const schedule = require('./libraries/node_modules/node-schedule');
+const commands = require('./helpers/utilities/commands.js');
 const funciones = require('./helpers/utilities/Functions.js');
 const variables = require('./helpers/utilities/Variables.js');
 
@@ -81,7 +81,7 @@ variables.CLIENT.on('messageCreate', async (message) => {
       if (member.roles.cache.has(variables.ROLE_IDs.toIgnore)) return;
 
       // Manejar comandos
-      funciones.manejarComandos(message);
+      commands.manejarComandos(message);
     }
   } catch (error) {
     // Manejo de errores para casos como miembros desconocidos y problemas con los guilds pero sobre los servidores en los que está el bot (relacionados con la caché supongo yo)
