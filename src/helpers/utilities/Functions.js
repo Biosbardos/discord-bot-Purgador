@@ -57,100 +57,111 @@ function responderMensaje(message, content) {
     .catch((error) => console.error('Error al responder al mensaje:', error));
 }
 
+/**
+ * Envía un mensaje a un canal específico por ID.
+ * @param {string} canalID - ID del canal de Discord.
+ * @param {string} content - Contenido del mensaje a enviar.
+ */
 function enviarMensajeCanalEspecifico(canalID, content) {
   const canal = variables.CLIENT.channels.cache.get(canalID);
-  canal.send({
-    content,
-  })
+  if (!canal) {
+    console.error(`No se pudo encontrar el canal con ID ${canalID}`);
+    return;
+  }
+  canal.send({ content })
     .catch((error) => console.error('Error al enviar el mensaje en el canal dicho:', error));
 }
 
 /**
- * Programa el envío de una imagen a un canal específico a las 00:00 AM cada día y más cosa hay como 3 funciones aquí, no juzguen.
+ * Programa el envío de imágenes y mensajes a canales específicos a horas concretas.
  */
+
 function programarEnvioDeImagen() {
   // Imagen de buenas noches a las 00:00
   schedule.scheduleJob('0 0 * * *', async () => {
-    const NightChannel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.mensajeNocturno);
-
-    if (NightChannel) {
-      try {
-        await NightChannel.send({
-          content: '¡Buenas noches! @here a dormir todo el mundo.',
-          files: [variables.IMAGE_PATHS.sleep],
-        });
-        console.log('🌙 Imagen de buenas noches enviada a las 00:00 AM 🌙');
-      } catch (error) {
-        console.error('Error al enviar la imagen programada:', error);
-      }
-    } else {
-      console.error('No se pudo encontrar el canal para el mensaje programado.');
-    }
+    await enviarImagenAlCanal(
+      variables.CANAL_IDs.mensajeNocturno,
+      '¡Buenas noches! @here a dormir todo el mundo.',
+      variables.IMAGE_PATHS.sleep);
+    console.log('🌙 Imagen de buenas noches enviada a las 00:00 AM 🌙');
   });
 
   // Imagen de buenos días a las 7:30
   schedule.scheduleJob('30 7 * * *', async () => {
-    const MorningChannel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.mensajeNocturno); // Debería poner mensajeDiurno, pero ya es un coñazo no sé si pondré al final todo purga y ya
-
-    if (MorningChannel) {
-      try {
-        await MorningChannel.send({
-          content: '¡Buenos días! @here buena suerte en la chamba, el Señor sea contigo.',
-          files: [variables.IMAGE_PATHS.wakeUp],
-        });
-        console.log('☀️ Imagen de buenos días enviada a las 07:30 AM ☀️');
-      } catch (error) {
-        console.error('Error al enviar la imagen programada:', error);
-      }
-    } else {
-      console.error('No se pudo encontrar el canal para el mensaje programado.');
-    }
+    await enviarImagenAlCanal(
+      variables.CANAL_IDs.mensajeNocturno,
+      '¡Buenos días! @here buena suerte en la chamba, el Señor sea contigo.',
+      variables.IMAGE_PATHS.wakeUp);
+    console.log('☀️ Imagen de buenos días enviada a las 07:30 AM ☀️');
   });
 
   // Mensaje privado a las 01:00 para usuarios conectados
   schedule.scheduleJob('0 1 * * *', async () => {
-    const channel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.checkOnline); // Nombre distinto porque todo esto tenía que estar en otra función al estar la misma se intenta reasignar el valro de una constante (no se puede)
-
-    if (channel) {
-      try {
-
-        // Obtiene los miembros del canal menos los que tienen el rol a ignorar
-        const members = channel.members.filter(member => !member.roles.cache.has(variables.ROLE_IDs.toIgnore));
-        const miembrosOnline = [];
-
-        for (const member of members.values()) {
-          const presencia = await obtenerPresenciaDeMiembro(channel.guild, member.id);
-          if (presencia !== 'offline') {
-            miembroPresencia = { member: member, presencia: presencia };
-            miembrosOnline.push(miembroPresencia);
-          }
-        }
-
-        if (miembrosOnline.length > 0) {
-          console.log('Miembros conectados:', miembrosOnline.map(miembroPresencia => `${miembroPresencia.member.user.tag} (${miembroPresencia.presencia})`).join(', '));
-
-          for (const miembroPresencia of miembrosOnline) {
-            try {
-              // Enviar mensaje privado con una imagen específica
-              await miembroPresencia.member.send({
-                content: '😴 ¿Aún despierto? 😴',
-                files: [variables.IMAGE_PATHS.lateNight],
-              });
-              console.log(`Mensaje privado enviado a ${miembroPresencia.member.user.tag}`);
-            } catch (dmError) {
-              console.error(`Error al enviar mensaje privado a ${miembroPresencia.member.user.tag}:`, dmError);
-            }
-          }
-        } else {
-          console.log('No hay miembros conectados en el canal a la 01:00 AM.');
-        }
-      } catch (error) {
-        console.error('Error al procesar usuarios conectados:', error);
-      }
-    } else {
-      console.error('No se pudo encontrar el canal para comprobar usuarios conectados.');
-    }
+    await enviarMensajePrivadoAMiembrosConectados(
+      variables.CANAL_IDs.checkOnline,
+      '😴 ¿Aún despierto? 😴',
+      variables.IMAGE_PATHS.lateNight);
   });
+}
+
+/**
+ * Envía una imagen y mensaje a un canal específico.
+ * @param {string} canalId - ID del canal de Discord.
+ * @param {string} content - Contenido del mensaje.
+ * @param {string} imagePath - Ruta de la imagen a enviar.
+ */
+async function enviarImagenAlCanal(canalId, content, imagePath) {
+  const canal = variables.CLIENT.channels.cache.get(canalId);
+  if (!canal) {
+    console.error(`No se pudo encontrar el canal con ID ${canalId}`);
+    return;
+  }
+  try {
+    await canal.send({ content, files: [imagePath] });
+  } catch (error) {
+    console.error('Error al enviar la imagen programada:', error);
+  }
+}
+
+/**
+ * Envía un mensaje privado con imagen a los miembros conectados de un canal de voz.
+ * @param {string} canalId - ID del canal de voz.
+ * @param {string} content - Contenido del mensaje.
+ * @param {string} imagePath - Ruta de la imagen a enviar.
+ */
+async function enviarMensajePrivadoAMiembrosConectados(canalId, content, imagePath) {
+  const canal = variables.CLIENT.channels.cache.get(canalId);
+  if (!canal) {
+    console.error('No se pudo encontrar el canal para comprobar usuarios conectados.');
+    return;
+  }
+  try {
+    const members = canal.members.filter(member => !member.roles.cache.has(variables.ROLE_IDs.toIgnore));
+    const miembrosOnline = [];
+    for (const member of members.values()) {
+      const presencia = await obtenerPresenciaDeMiembro(canal.guild, member.id);
+      if (presencia !== 'offline') {
+        miembroPresencia = { member: member, presencia: presencia };
+        miembrosOnline.push(miembroPresencia);
+      }
+    }
+    if (miembrosOnline.length > 0) {
+      console.log('Miembros conectados:', miembrosOnline.map(m => `${m.member.user.tag} (${m.presencia})`).join(', '));
+      await Promise.all(miembrosOnline.map(async (miembroPresencia) => {
+        try {
+          await miembroPresencia.member.send({ content, files: [imagePath] });
+          console.log(`Mensaje privado enviado a ${miembroPresencia.member.user.tag}`);
+        } catch (dmError) {
+          console.error(`Error al enviar mensaje privado a ${miembroPresencia.member.user.tag}:`, dmError);
+        }
+      }));
+
+    } else {
+      console.log('No hay miembros conectados en el canal a la 01:00 AM.');
+    }
+  } catch (error) {
+    console.error('Error al procesar usuarios conectados:', error);
+  }
 }
 
 /**
@@ -397,10 +408,10 @@ function esAdministrador(message) {
   return message.member.permissions.has('Administrator');
 }
 
- /**
- * Función para programar la reproducción de un audio entre unas fechas concretas
- */
- function programarReproducciónDeAudio() {
+/**
+* Función para programar la reproducción de un audio entre unas fechas concretas
+*/
+function programarReproducciónDeAudio() {
   // Obtenemos el año actual
   const currentYear = new Date().getFullYear();
   // Calculamos el próximo año
@@ -411,7 +422,7 @@ function esAdministrador(message) {
   const endDate = new Date(`${nextYear}-01-08T23:59:59`);      // Ya veo a los espabilados diciendo de ajustar entonces la hora y ya, esto es javascript no puede ser una solución sencilla y eficiente...
 
   schedule.scheduleJob(
-    { start: startDate, end: endDate, rule: '*/5 * * * * *', tz: 'Europe/Madrid'},
+    { start: startDate, end: endDate, rule: '*/5 * * * * *', tz: 'Europe/Madrid' },
     async () => {
       if (!variables.GLOBAL_VARIABLES.connection || variables.GLOBAL_VARIABLES.connection.state.status !== 'ready') {
         console.log('⏳ Conectando y configurando la reproducción... ⏳');
@@ -470,7 +481,7 @@ async function reproducirPlaylistEnBucle(playlist, repeticionesPorCancion, voice
 
       // Opcional: mostrar mensaje cada vez que se complete un ciclo del playlist
       if (playCount % (repeticionesPorCancion * playlist.length) === 0) {
-        const n = playCount/(repeticionesPorCancion * playlist.length);
+        const n = playCount / (repeticionesPorCancion * playlist.length);
         console.log(`🎵 Se han reproducido ${n} veces en total. 🎵`);
       }
 
@@ -498,27 +509,27 @@ async function reproducirPlaylistEnBucle(playlist, repeticionesPorCancion, voice
 }
 
 
-  /**
- * Función para detener la reproducción del playlist en bucle.
- * Se detiene el reproductor de audio y se desconecta del canal de voz.
- */
-  function detenerPlaylistBucle() {
-    // Si existe el reproductor, detenemos la reproducción.
-    if (variables.GLOBAL_VARIABLES.player) {
-      variables.GLOBAL_VARIABLES.player.stop();
-      console.log("🔇 Reproducción detenida en el reproductor de audio. 🔇");
-    }
-  
-    // Si existe la conexión al canal de voz, procedemos a destruirla.
-    if (variables.GLOBAL_VARIABLES.connection) {
-      variables.GLOBAL_VARIABLES.connection.destroy();
-      console.log("🔌 Desconectado del canal de voz. 🔌");
-    }
-    
-    // Reinicializamos las variables globales para dejar el estado limpio.
-    variables.GLOBAL_VARIABLES.player = null;
-    variables.GLOBAL_VARIABLES.connection = null;
+/**
+* Función para detener la reproducción del playlist en bucle.
+* Se detiene el reproductor de audio y se desconecta del canal de voz.
+*/
+function detenerPlaylistBucle() {
+  // Si existe el reproductor, detenemos la reproducción.
+  if (variables.GLOBAL_VARIABLES.player) {
+    variables.GLOBAL_VARIABLES.player.stop();
+    console.log("🔇 Reproducción detenida en el reproductor de audio. 🔇");
   }
+
+  // Si existe la conexión al canal de voz, procedemos a destruirla.
+  if (variables.GLOBAL_VARIABLES.connection) {
+    variables.GLOBAL_VARIABLES.connection.destroy();
+    console.log("🔌 Desconectado del canal de voz. 🔌");
+  }
+
+  // Reinicializamos las variables globales para dejar el estado limpio.
+  variables.GLOBAL_VARIABLES.player = null;
+  variables.GLOBAL_VARIABLES.connection = null;
+}
 
 
 /**
@@ -528,87 +539,96 @@ async function reproducirPlaylistEnBucle(playlist, repeticionesPorCancion, voice
 * @param {Message} message Objeto del mensaje que disparó el comando.
 */
 async function administrarPlaylist(message) {
+  try {
 
-  // Array de opciones para playlists. Puedes agregar o modificar según tus datos.
-  const playlistArray = [
+    // Array de opciones para playlists. Puedes agregar o modificar según tus datos.
+    const playlistArray = [
       { label: 'Canciones Navideñas', description: 'Canciones que se voten para estas fechas tan señaladas', value: 'cancionesNavidad' },
       { label: 'Salven Europa', description: 'Propaganda para llevarnos a Agartha', value: 'salvarEuropa' },
       { label: 'No hay aún', description: 'No hay aún', value: 'No hay aún' }
-  ];
+    ];
 
-  // Crear menú desplegable para la cantidad de repeticiones (1 a 5).
-  const quantitySelect = new StringSelectMenuBuilder()
+    // Crear menú desplegable para la cantidad de repeticiones (1 a 5).
+    const quantitySelect = new StringSelectMenuBuilder()
       .setCustomId('select_quantity')
       .setPlaceholder('Repeticiones antes de cambiar de canción:')
       .addOptions([
-          { label: '1', value: '1' },
-          { label: '2', value: '2' },
-          { label: '3', value: '3' },
-          { label: '4', value: '4' },
-          { label: '5', value: '5' }
+        { label: '1', value: '1' },
+        { label: '2', value: '2' },
+        { label: '3', value: '3' },
+        { label: '4', value: '4' },
+        { label: '5', value: '5' }
       ]);
 
-  // Crear menú desplegable para la selección de la playlist.
-  const playlistSelect = new StringSelectMenuBuilder()
+    // Crear menú desplegable para la selección de la playlist.
+    const playlistSelect = new StringSelectMenuBuilder()
       .setCustomId('select_playlist')
       .setPlaceholder('Playlist a reproducir:')
       .addOptions(playlistArray);
 
-  // Colocar cada select menu en su propia fila de acción.
-  const rowQuantity = new ActionRowBuilder().addComponents(quantitySelect);
-  const rowPlaylist = new ActionRowBuilder().addComponents(playlistSelect);
+    // Colocar cada select menu en su propia fila de acción.
+    const rowQuantity = new ActionRowBuilder().addComponents(quantitySelect);
+    const rowPlaylist = new ActionRowBuilder().addComponents(playlistSelect);
 
-  // Crear un embed para informar al usuario
-  const embed = new EmbedBuilder()
+    // Crear un embed para informar al usuario
+    const embed = new EmbedBuilder()
       .setTitle('Configurar Reproducción')
       .setDescription('Por favor, selecciona la cantidad de repeticiones y la playlist a reproducir:');
 
-  // Enviar el mensaje al canal con el embed y los componentes.
-  const sentMessage = await message.channel.send({
+    // Enviar el mensaje al canal con el embed y los componentes.
+    const sentMessage = await message.channel.send({
       embeds: [embed],
       components: [rowQuantity, rowPlaylist]
-  });
+    });
 
-  // Creamos un collector para gestionar las interacciones (solo del autor del mensaje).
-  const filter = interaction => interaction.user.id === message.author.id;
-  const collector = sentMessage.createMessageComponentCollector({ filter, time: 60000 });
+    // Creamos un collector para gestionar las interacciones (solo del autor del mensaje).
+    const filter = interaction => interaction.user.id === message.author.id;
+    const collector = sentMessage.createMessageComponentCollector({ filter, time: 60000 });
 
-  let selectedQuantity, selectedPlaylist;
+    let selectedQuantity, selectedPlaylist;
 
-  collector.on('collect', async interaction => {
+    collector.on('collect', async interaction => {
       if (interaction.customId === 'select_quantity') {
-          // Convertimos la cantidad a número.
-          selectedQuantity = parseInt(interaction.values[0], 10);
-          await interaction.deferUpdate(); // Responder a la interacción para evitar que falle
-          //await interaction.reply({ content: `Seleccionaste reproducir ${selectedQuantity} vez/veces.`, ephemeral: true });
+        // Convertimos la cantidad a número.
+        selectedQuantity = parseInt(interaction.values[0], 10);
+        await interaction.deferUpdate(); // Responder a la interacción para evitar que falle
+        //await interaction.reply({ content: `Seleccionaste reproducir ${selectedQuantity} vez/veces.`, ephemeral: true });
       } else if (interaction.customId === 'select_playlist') {
-           // Usamos la clave para obtener la playlist real.
-          const key = interaction.values[0];
-          selectedPlaylist = variables.PLAYLISTS[key];
-          await interaction.deferUpdate(); // No quiero un mensaje goofy, pero tampoco quiero que falle
-          //await interaction.reply({ content: `Seleccionaste la playlist: ${selectedPlaylist}.`, ephemeral: true });
+        // Usamos la clave para obtener la playlist real.
+        const key = interaction.values[0];
+        selectedPlaylist = variables.PLAYLISTS[key];
+        await interaction.deferUpdate(); // No quiero un mensaje goofy, pero tampoco quiero que falle
+        //await interaction.reply({ content: `Seleccionaste la playlist: ${selectedPlaylist}.`, ephemeral: true });
       }
 
       // Si se han realizado ambas selecciones, llamamos a la función para reproducir.
       if (selectedQuantity && selectedPlaylist) {
-          collector.stop(); // Detener el collector
-          // Llamamos a la función que reproduce la playlist. Se asume que toma (cantidad, playlist).
-          reproducirPlaylistEnBucle(selectedPlaylist, selectedQuantity);
-          // Editamos el mensaje original para desactivar los componentes.
-          await sentMessage.edit({ components: [] });
+        collector.stop(); // Detener el collector
+        // Llamamos a la función que reproduce la playlist. Se asume que toma (cantidad, playlist).
+        reproducirPlaylistEnBucle(selectedPlaylist, selectedQuantity);
+        // Editamos el mensaje original para desactivar los componentes.
+        await sentMessage.edit({ components: [] });
       }
-  });
+    });
 
-  collector.on('end', async () => {
+    collector.on('end', async () => {
       if (!selectedQuantity || !selectedPlaylist) {
-          await message.channel.send('❌ No se completó la selección a tiempo. ❌');
-          await sentMessage.edit({ components: [] });
+        await message.channel.send('❌ No se completó la selección a tiempo. ❌');
+        await sentMessage.edit({ components: [] });
       }
-  });
+    });
+
+  } catch (error) {
+    console.error('Error en administrarPlaylist:', error);
+    await message.channel.send('❌ Ocurrió un error al intentar administrar la playlist. ❌');
+  }
 }
 
-//función para poner bien la fecha en los console.log que necesitan fecha.
-
+/**
+ * Da formato a una fecha para mostrarla en logs.
+ * @param {Date} date - Objeto Date a formatear.
+ * @returns {string} Fecha formateada como HH:mm:ss [dd/MM/yyyy].
+ */
 function formatDate(date) {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0'); // Los meses en JavaScript van de 0 a 11
@@ -616,22 +636,24 @@ function formatDate(date) {
   const hours = String(date.getHours()).padStart(2, '0'); // Obtener las horas en formato 24h
   const minutes = String(date.getMinutes()).padStart(2, '0'); // Obtener los minutos
   const seconds = String(date.getSeconds()).padStart(2, '0'); // Obtener los segundos
-  fechaFormateada = `${hours}:${minutes}:${seconds} [${day}/${month}/${year}]`;
+  const fechaFormateada = `${hours}:${minutes}:${seconds} [${day}/${month}/${year}]`;
   return fechaFormateada;
 }
 
-
+/**
+ * Cuenta los meses de desarrollo del bot, actualiza el archivo y envía un mensaje.
+ */
 function contadorMesesDesarrollo() {
   let numero;
 
   // Intentar leer el archivo
   try {
-      const contenido = fs.readFileSync(variables.FILE_PATHS.mesesDesarollo, 'utf8');
-      numero = parseInt(contenido, 10); // Convertir a número
-      if (isNaN(numero)) throw new Error('El contenido no es un número.');
+    const contenido = fs.readFileSync(variables.FILE_PATHS.mesesDesarollo, 'utf8');
+    numero = parseInt(contenido, 10); // Convertir a número
+    if (isNaN(numero)) throw new Error('El contenido no es un número.');
   } catch (err) {
-      console.error('Error al leer el archivo:', err);
-      return; // Salir de la función sin detener todo el programa MUY IMPORTANTE (y útil)
+    console.error('Error al leer el archivo:', err);
+    return; // Salir de la función sin detener todo el programa MUY IMPORTANTE (y útil)
   }
 
   // Incrementar el número
@@ -642,10 +664,10 @@ function contadorMesesDesarrollo() {
 
   // Escribir el nuevo valor en el archivo
   try {
-      fs.writeFileSync(variables.FILE_PATHS.mesesDesarollo, numero.toString());
-      console.log('Número actualizado:', numero);
+    fs.writeFileSync(variables.FILE_PATHS.mesesDesarollo, numero.toString());
+    console.log('Número actualizado:', numero);
   } catch (err) {
-      console.error('Error al escribir en el archivo:', err);
+    console.error('Error al escribir en el archivo:', err);
   }
 }
 
@@ -663,17 +685,25 @@ schedule.scheduleJob('00 13 16 * *', () => {
 function contarPalabras(message) {
   const texto = message.content; // Obtenemos el contenido del mensaje
   const palabras = texto.match(/\b[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+\b/g); // Captura solo palabras alfabéticas
-  return palabras ? palabras.length - 1 : 0; // Retornamos la cantidad de palabras encontradas (no tiene sentido la evaluación porque por la naturaleza del switch de comandos, y la lógica en general, nunca va a ser falsy)
+  return palabras ? palabras.length - 1 : 0; // Retornamos la cantidad de palabras encontradas (menos la palabra del comando) (no haría falta la evalución porque nunca va a ser null palabras pero bueno, por si acaso)
 }
 
+/**
+ * Activa el registro de actividad manual para Bios en Visual Studio Code.
+ * Añade una entrada al HashMap de juegos activos.
+ */
 function activarActividadBios() {
   //Como al discord no le apetece ya detectarme cuando estoy en el puto VS Code, hago aquí aparte una entrada al Hashmap para meterme a mi mismo para que cuente el tiempo que estoy literalmente aquí que dependa de un booleano
-    variables.DATA_ESCTRUCTURES.activeGames.set(variables.USER_IDs.biosID, { game: 'Visual Studio Code', startTime: Date.now(), manual: true}); //extremadamente importante marcar entrada como manual, esta flag evita que el evento maneje la entrada según su lógica
-    console.log('biosbardo comenzó a jugar a Visual Studio Code', formatDate(new Date()));
+  variables.DATA_ESCTRUCTURES.activeGames.set(variables.USER_IDs.biosID, { game: 'Visual Studio Code', startTime: Date.now(), manual: true }); //extremadamente importante marcar entrada como manual, esta flag evita que el evento maneje la entrada según su lógica
+  console.log('biosbardo comenzó a jugar a Visual Studio Code', formatDate(new Date()));
 }
 
+/**
+ * Desactiva el registro de actividad manual para Bios en Visual Studio Code.
+ * Calcula el tiempo jugado y elimina la entrada del HashMap.
+ */
 function desactivarActividadBios() {
-  if(variables.DATA_ESCTRUCTURES.activeGames.has(variables.USER_IDs.biosID)) {
+  if (variables.DATA_ESCTRUCTURES.activeGames.has(variables.USER_IDs.biosID)) {
     const { game, startTime } = variables.DATA_ESCTRUCTURES.activeGames.get(variables.USER_IDs.biosID);
     const endTime = Date.now();
     const durationMs = endTime - startTime;
@@ -685,10 +715,6 @@ function desactivarActividadBios() {
     variables.DATA_ESCTRUCTURES.activeGames.delete(variables.USER_IDs.biosID);
   }
 }
-
-
-
-
 
 //Objeto con todas las funciones del archivo
 const funciones = Object.freeze({
@@ -713,89 +739,4 @@ const funciones = Object.freeze({
   desactivarActividadBios,
 });
 
-//Exportar el objeto funciones con todas las funciones del archivo para poder usarlas en el index.js
 module.exports = funciones;
-
-//POR INCORPORAR
-
-/**
- * Función para manejar las prioridades de reproducción.
- * @param {Object} interaction - La interacción del comando.
- * @param {String} audioPath - Ruta del archivo de audio.
- * @param {Boolean} forcePlay - Ignorar restricciones si es programado.
- 
-async function manejarReproduccion(interaction, audioPath, forcePlay = false) {
-  const voiceChannel = interaction.member.voice.channel;
-  if (!voiceChannel) {
-    await interaction.reply({ content: '¡Debes estar en un canal de voz para usar esta función!', ephemeral: true });
-    return;
-  }
-
-  const fechaActual = new Date();
-  const enPeriodoProgramado =
-    fechaActual.getMonth() === 11 || (fechaActual.getMonth() === 0 && fechaActual.getDate() <= 8);
-
-  if (enPeriodoProgramado && !forcePlay) {
-    await interaction.reply({
-      content: '🎄 El bot está ocupado reproduciendo música navideña. Intenta después del 8 de enero.🎄',
-      ephemeral: true,
-    });
-    return;
-  }
-
-  if (variables.GLOBAL_VARIABLES.isPlaying) {
-    await interaction.reply({ content: '⏳ El bot está reproduciendo otro audio. Intenta más tarde.⏳', ephemeral: true });
-    return;
-  }
-
-  // Conectar y reproducir
-  try {
-    const connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: voiceChannel.guild.id,
-      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-    });
-
-    const player = createAudioPlayer();
-    const resource = createAudioResource(audioPath);
-
-    player.play(resource);
-    connection.subscribe(player);
-    variables.GLOBAL_VARIABLES.isPlaying = true;
-
-    await interaction.reply({ content: `🎵 Reproduciendo audio: ${path.basename(audioPath)}🎵`, ephemeral: true });
-
-    player.on(AudioPlayerStatus.Idle, () => {
-      variables.GLOBAL_VARIABLES.isPlaying = false;
-      connection.destroy();
-      if (audioQueue.length > 0) {
-        // Reproducir siguiente audio en cola
-        manejarReproduccion(interaction, audioQueue.shift());
-      }
-    });
-
-    player.on('error', (error) => {
-      console.error('Error al reproducir audio:', error);
-      variables.GLOBAL_VARIABLES.isPlaying = false;
-      connection.destroy();
-    });
-  } catch (error) {
-    console.error('Error al manejar reproducción:', error);
-    variables.GLOBAL_VARIABLES.isPlaying = false;
-    await interaction.reply({ content: 'Hubo un problema al reproducir el audio.', ephemeral: true });
-  }
-}
-
-// Configuración del audio programado
-schedule.scheduleJob('0 0 1 12 *', () => {
-  client.channels.fetch('ID_DEL_CANAL_DE_VOZ') // Cambia con el ID del canal
-    .then((channel) => {
-      manejarReproduccion(
-        { member: { voice: { channel } } },
-        variables.AUDIO_PATHS,
-        true // Forzar reproducción
-      );
-    })
-    .catch(console.error);
-});
-*/

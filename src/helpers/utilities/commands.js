@@ -32,10 +32,9 @@ async function manejarComandos(message) {
       funciones.enviarImagen(message, variables.IMAGE_PATHS.chanti, 'Aquí está tu imagen:');
       break;
     case '-esencia':
-    case 'esencia':                                                                                                 // Sobre este caso en específico, ya que puse JA JA JA JA, creí que quedaba mejor poner el texto abajo, implicando usar una función sobrecargada (lo cual no se puede en js) así que opté por un booleano
+    case 'esencia':
       funciones.enviarMensaje(message, 'Puede tardar un poquito, no desesperarse...');
-      funciones.enviarImagen(message, variables.IMAGE_PATHS.esencia, 'JA JA JA JA', true);                                    // Puse JA JA JA JA, pero funciona sin mandar nada de content aunque sea parametro de la función (extraño js)
-      //enviarMensaje(message, 'https://tenor.com/es/view/broly-villain-laughing-dragon-ball-z-dbz-gif-17670507');  // OPCIÓN mucho más fácil y eficiente, pero no me gusta como lo manda. Se tratará como imagen mejor
+      funciones.enviarImagen(message, variables.IMAGE_PATHS.esencia, 'JA JA JA JA', true);
       break;
     case '-help':
       funciones.enviarMensaje(message, 'Pregúntale al Bios');
@@ -79,7 +78,7 @@ async function manejarComandos(message) {
     default: { // Para comandos de varias palabras (y no es -borrar [parámetro]) // Se usan switches anidados porque es más eficiente que usar dos separados
       const comandoEspecial = message.content.toLowerCase();
 
-      switch (comandoEspecial) { //en este switch por la naturaleza de los switches y de estos comandos, no se puede joder, hay que poner el comando exacto y ya sino no funciona (espero que sea entendible)
+      switch (comandoEspecial) { //en este switch por la naturaleza de los switches y de estos comandos, no se puede joder, hay que poner el comando exacto y ya, sino no funciona (espero que sea entendible)
         case '-7 palabras':
         case '7 palabras':
           funciones.enviarMensaje(message, 'esencia');

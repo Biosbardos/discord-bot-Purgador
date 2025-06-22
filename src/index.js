@@ -68,15 +68,14 @@ variables.CLIENT.on('messageCreate', async (message) => {
       return;
     } else {
       if (!message.guild) return;
+      // Intentar obtener al miembro desde la caché o hacer fetch si no está
+      let member = message.guild.members.cache.get(message.author.id)
+        ?? await message.guild.members.fetch(message.author.id).catch(() => null); // Para evitar exceciones con undefined y posibles rollos de JS
 
-      // Intentar obtener al miembro desde la caché
-      let member = message.guild.members.cache.get(message.author.id);
-
-      // Si no está en la caché, hacer un fetch
       if (!member) {
-        member = await message.guild.members.fetch(message.author.id);
+        console.error('Miembro no encontrado tras fetch.');
+        return;
       }
-
       // Validar si el miembro tiene el rol a ignorar
       if (member.roles.cache.has(variables.ROLE_IDs.toIgnore)) return;
 
@@ -84,11 +83,11 @@ variables.CLIENT.on('messageCreate', async (message) => {
       commands.manejarComandos(message);
     }
   } catch (error) {
-    // Manejo de errores para casos como miembros desconocidos y problemas con los guilds pero sobre los servidores en los que está el bot (relacionados con la caché supongo yo)
+    // Manejo de errores
     if (error.code === 10007) {
       console.warn(`⚠️ Miembro desconocido (ID: ${message.author.id}) ⚠️`);
     } else if (error.code === 30001) {
-      console.warn(`⚠️ Problemas con el servidor (ID: ${message.guild.id}) ⚠️`); //no me acaba de convencer, no tiene mucho sentido manejarlo así pero es que tampoco entiendo como da el error, de todas formas no ha vuelto a darlo y al manejar la caché no debería volver a darlo
+      console.warn(`⚠️ Problemas con el servidor (ID: ${message.guild.id}) ⚠️`);
     } else if (error.code === -3001) {
       console.warn(`⚠️ Posibles problemas con la conexión ⚠️`);
     } else {
@@ -130,7 +129,7 @@ variables.CLIENT.on('messageCreate', async (message) => {
       }
     } else if (message.author.id == variables.USER_IDs.botPurgador) {
 
-        const palabrasClave = ['Visual Studio Code', 'Code::Blocks 20.03', 'Apache NetBeans IDE', 'SolidWorks', 'El bot lleva en desarrollo'];
+      const palabrasClave = ['Visual Studio Code', 'Code::Blocks 20.03', 'Apache NetBeans IDE', 'SolidWorks', 'El bot lleva en desarrollo'];
 
       if (palabrasClave.some((palabra) => message.content.includes(palabra))) {
         // Reaccionar a los mensajes de chamba
@@ -151,16 +150,11 @@ variables.CLIENT.on('messageCreate', async (message) => {
   }
 });
 
-//Hay que poner esto en su sitio
-const CHANNEL_ID = '747553011009847376'; 
-const MESSAGE_ID = '1308231460804890625';
-const ROLE_ID = '1007035110123642881';
-
 //Evento: Manejo reacciones Positivas
 variables.CLIENT.on('messageReactionAdd', async (reaction, user) => { //Si se añade reacción a historial de mensajes manejar las reacciones negativas (por ahora funciona de manera cronológica y no hay conflicto)
   try {
-    if(user.id === variables.USER_IDs.biosID){
-      const emojiReaccionado= reaction.emoji.name;
+    if (user.id === variables.USER_IDs.biosID) {
+      const emojiReaccionado = reaction.emoji.name;
       reaction.message.react(emojiReaccionado);
     }
 
@@ -183,18 +177,30 @@ variables.CLIENT.on('messageReactionAdd', async (reaction, user) => { //Si se a�
 //Evento: Asignación de roles reactivos para #purga
 variables.CLIENT.on('messageReactionAdd', async (reaction, user) => { //Si se añade reacción a historial de mensajes manejar las reacciones negativas (por ahora funciona de manera cronológica y no hay conflicto)
   try {
-    
+
     const guild = reaction.message.guild;
     const channel = reaction.message.channel;
+
+    // Validar que guild y channel existen
+    if (!guild || !channel) {
+      console.error('Guild o canal no encontrado.');
+      return;
+    }
+
     const member = guild.members.cache.get(user.id);
-    const role = guild.roles.cache.get(ROLE_ID);
+    const role = guild.roles.cache.get(variables.ROLE_IDs.rolReactivo);
 
-    if (user.bot || reaction.message.channel.id !== CHANNEL_ID) return;
+    if (!member || !role) {
+      console.error('Miembro o rol no encontrado.');
+      return;
+    }
 
-    await channel.messages.fetch(MESSAGE_ID);
-    //console.log(`✅ Mensaje con ID ${MESSAGE_ID} cargado en caché para monitorear reacciones. ✅`);
+    if (user.bot || reaction.message.channel.id !== variables.CANAL_IDs.decretosOficiales) return;
 
-    if (reaction.message.id !== MESSAGE_ID) return; // Verificar que el mensaje es el específico
+    await channel.messages.fetch(variables.MESSAGE_IDs.mensajeRolReactivo);
+    //console.log(`✅ Mensaje con ID ${variables.MESSAGE_IDs.mensajeRolReactivo} cargado en caché para monitorear reacciones. ✅`);
+
+    if (reaction.message.id !== variables.MESSAGE_IDs.mensajeRolReactivo) return; // Verificar que el mensaje es el específico
     if (member.roles.cache.has(role.id)) return; // Verificar si el usuario ya tiene el rol
 
     await member.roles.add(role);
@@ -210,13 +216,25 @@ variables.CLIENT.on('messageReactionRemove', async (reaction, user) => {
 
     const guild = reaction.message.guild;
     const channel = reaction.message.channel;
+
+    // Validar que guild y channel existen
+    if (!guild || !channel) {
+      console.error('Guild o canal no encontrado.');
+      return;
+    }
+
     const member = guild.members.cache.get(user.id);
-    const role = guild.roles.cache.get(ROLE_ID);
+    const role = guild.roles.cache.get(variables.ROLE_IDs.rolReactivo);
 
-    if (user.bot || reaction.message.channel.id !== CHANNEL_ID) return;
+    if (!member || !role) {
+      console.error('Miembro o rol no encontrado.');
+      return;
+    }
 
-    await channel.messages.fetch(MESSAGE_ID);
-    if (reaction.message.id !== MESSAGE_ID) return; // Verificar que el mensaje es el específico
+    if (user.bot || reaction.message.channel.id !== variables.CANAL_IDs.decretosOficiales) return;
+
+    await channel.messages.fetch(variables.MESSAGE_IDs.mensajeRolReactivo);
+    if (reaction.message.id !== variables.MESSAGE_IDs.mensajeRolReactivo) return; // Verificar que el mensaje es el específico
 
     await member.roles.remove(role);
     console.log(`Rol ${role.name} retirado de ${user.tag} por quitar la reacción del mensaje`);
@@ -225,19 +243,14 @@ variables.CLIENT.on('messageReactionRemove', async (reaction, user) => {
   }
 });
 
-//TODO ESTE EVENTO HAY QUE ARREGLARLO MOVER VARIABLES A VARIABLES METER COSAS EN UNA FUNCIÓN Y DEMÁS
-const activeGames = variables.DATA_ESCTRUCTURES.activeGames; // Mapa para almacenar los juegos activos de los usuarios
-
 variables.CLIENT.on('presenceUpdate', (oldPresence, newPresence) => {
-  // ID del canal de texto específico donde se supervisarán los cambios de actividad
-  const CHANNEL_ID = variables.CANAL_IDs.purga;
 
   // Verificar si el miembro es válido
   if (!newPresence || !newPresence.member) return;
   const member = newPresence.member;
 
   // Obtener el canal de texto
-  const textChannel = variables.CLIENT.channels.cache.get(CHANNEL_ID);
+  const textChannel = variables.CLIENT.channels.cache.get(variables.CANAL_IDs.checkActivities);
   if (!textChannel) return;
 
   // Obtener los miembros del canal
@@ -251,18 +264,18 @@ variables.CLIENT.on('presenceUpdate', (oldPresence, newPresence) => {
   activities.forEach(activity => {
     if (activity.type === 0) { // 0 corresponde a PLAYING en Discord.js v14+
       isPlaying = true;
-      if (!activeGames.has(member.id)) {
+      if (!variables.DATA_ESCTRUCTURES.activeGames.has(member.id)) {
         const startTime = Date.now();
-        activeGames.set(member.id, { game: activity.name, startTime });
-        //funciones.enviarMensajeCanalEspecifico(CHANNEL_ID,`${member.user.tag} comenzó a jugar a ${activity.name}` );  // Peta mucho el canal y no da mucha información. Es decir, dice que empezó a jugar a qué pero ya, el mensaje de acabar te dice a que juego estaba jugando igualmente y además cuanto jugó.
+        variables.DATA_ESCTRUCTURES.activeGames.set(member.id, { game: activity.name, startTime });
+        //funciones.enviarMensajeCanalEspecifico(variables.CANAL_IDs.checkActivities,`${member.user.tag} comenzó a jugar a ${activity.name}` );  // Peta mucho el canal y no da mucha información. Es decir, dice que empezó a jugar a qué pero ya, el mensaje de acabar te dice a que juego estaba jugando igualmente y además cuanto jugó.
         console.log(`${member.user.tag} comenzó a jugar a ${activity.name}`, funciones.formatDate(new Date()));
       }
     }
   });
 
   // Si el usuario ya no está jugando, registrar cuándo dejó de jugar
-  if (!isPlaying && activeGames.has(member.id)) {
-    const { game, startTime, manual } = activeGames.get(member.id);
+  if (!isPlaying && variables.DATA_ESCTRUCTURES.activeGames.has(member.id)) {
+    const { game, startTime, manual } = variables.DATA_ESCTRUCTURES.activeGames.get(member.id);
 
     // Ignorar entradas manuales
     if (manual) return;
@@ -272,14 +285,14 @@ variables.CLIENT.on('presenceUpdate', (oldPresence, newPresence) => {
     const hours = Math.floor(durationMs / 3600000);
     const minutes = Math.floor((durationMs % 3600000) / 60000);
     const seconds = ((durationMs % 60000) / 1000).toFixed(2);
-    funciones.enviarMensajeCanalEspecifico(CHANNEL_ID, `${member.user.tag} dejó de jugar a ${game} después de ${hours}h ${minutes}m ${seconds}s.`);
+    funciones.enviarMensajeCanalEspecifico(variables.CANAL_IDs.checkActivities, `${member.user.tag} dejó de jugar a ${game} después de ${hours}h ${minutes}m ${seconds}s.`);
     console.log(`${member.user.tag} dejó de jugar a ${game} después de ${hours}h ${minutes}m ${seconds}s.`, funciones.formatDate(new Date()));
     if (hours >= 3 && hours < 6) {
-      funciones.enviarMensajeCanalEspecifico(CHANNEL_ID, `Chaaacho, ${member.user.tag} ya te vale eh! Jornada laboral completa jugando al ${game}`);
+      funciones.enviarMensajeCanalEspecifico(variables.CANAL_IDs.checkActivities, `Chaaacho, ${member.user.tag} ya te vale eh! Jornada laboral completa jugando al ${game}`);
     } else if (hours >= 6) {
-      funciones.enviarMensajeCanalEspecifico(CHANNEL_ID, ` <@${member.user.id}> qué pasa tarántula, deixame ver unha cousiña, ${game} == ${hours}h ${minutes}m ${seconds}s vs Chamba == 0h 0m 0s`);
+      funciones.enviarMensajeCanalEspecifico(variables.CANAL_IDs.checkActivities, ` <@${member.user.id}> qué pasa tarántula, deixame ver unha cousiña, ${game} == ${hours}h ${minutes}m ${seconds}s vs Chamba == 0h 0m 0s`);
     }
-    activeGames.delete(member.id);
+    variables.DATA_ESCTRUCTURES.activeGames.delete(member.id);
   }
 });
 

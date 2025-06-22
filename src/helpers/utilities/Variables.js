@@ -44,21 +44,30 @@ const CANAL_IDs = Object.freeze({
   purga: process.env.purga,                              // ID del canal para reaccionar mensajes // Todas las propiedades de un objeto en js son independientes no puedes declarar una variable que en su inicialización dependa de otra variable declarada en el objeto
   mensajeNocturno: process.env.purga,                    // ID del canal para mensajes programados
   checkOnline: process.env.purga,                        // ID del canal dónde comprobar quién sigue despierto a la 01:00 
+  checkActivities: process.env.purga,                    // ID del canal dónde supervisar los cambios de actividad de los usuarios
   reaccion: process.env.purga,                           // ID del canal donde reaccionar
+  
 
   mensajesRepetitivos: process.env.mensajesRepetitivos,  //ID del canal dónde petar a usuarios para que chambeen con mensajes repetitivos
   admins: process.env.admins,                            //  ID del canal de admins
+  decretosOficiales: process.env.decretosOficiales,      //  ID del canal de decretos oficiales
+
   ciudadVoice: process.env.ciudadVoice,                  //  ID del canal de voz navideño
 });
 
 const ROLE_IDs = Object.freeze({
-  toIgnore: process.env.toIgnore, // ID del rol de los BOTS
+  toIgnore: process.env.toIgnore,       // ID del rol de los BOTS
+  rolReactivo: process.env.rolReactivo, // ID del rol reactivo que se recibe al reaccionar al mensaje de decretos oficiales
 });
 
 const USER_IDs = Object.freeze({
   botPurgador: process.env.botPurgador, // ID del Purgador
   coresID: process.env.coresID,         // ID del Cores
   biosID: process.env.biosID,           // ID del Bios
+});
+
+const MESSAGE_IDs = Object.freeze({
+  mensajeRolReactivo: process.env.mensajeRolReactivo, // ID del mensaje de decretos oficiales para recibir rol reactivo
 });
 
 const REACTIONS = Object.freeze({
@@ -74,7 +83,7 @@ const DATA_ESCTRUCTURES = Object.freeze({
   intervalosMinutos: [1, 5, 10],              // Intervalos disponibles en minutos
   audioQueue: [],                             // Cola de reproducción
   userStateDM: new Map(),                     // Mapa de mensajes y cooldown (para enviar la foto y el emoji juntos) de usuarios por DM
-  activeGames: new Map(),                     // Almacenar cuándo un usuario comienza a jugar
+  activeGames: new Map(),                     // Mapa para almacenar los juegos activos de los usuarios
 });
 
 const PLAYLISTS = Object.freeze({
@@ -113,7 +122,7 @@ const CLIENT = new Client({
   ],
 });
 
-//Objeto con todas las funciones del archivo //cambiar nombres
+//Objeto con todas las variables (Objetos) del archivo
 const variables = Object.freeze({
   TOKEN,
   IMAGE_PATHS,
@@ -122,6 +131,7 @@ const variables = Object.freeze({
   CANAL_IDs,
   ROLE_IDs,
   USER_IDs,
+  MESSAGE_IDs,
   REACTIONS,
   DATA_ESCTRUCTURES,
   PLAYLISTS,
@@ -129,5 +139,4 @@ const variables = Object.freeze({
   CLIENT,
 });
 
-//Exportar el objeto funciones con todas las funciones del archivo para poder usarlas en el index.js
 module.exports = variables;
