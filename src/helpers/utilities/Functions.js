@@ -716,6 +716,54 @@ function desactivarActividadBios() {
   }
 }
 
+/**
+ * Devuelve aleatoriamente el valor de uno de los atributos del objeto recibido,
+ * evitando repetir el último valor devuelto.
+ * @param {object} obj - Objeto del que se elegirá un atributo aleatorio.
+ * @param {string} [ultimaClave] - Última clave seleccionada (opcional).
+ * @returns {{valor: *, clave: string}|undefined} Objeto con el valor y la clave seleccionada, o undefined si vacío.
+ */
+function obtenerMensajeAleatorio(obj, ultimaClave = null) {
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return undefined;
+
+  // Si solo hay una clave, no hay opción de evitar repetición
+  let posibles = keys;
+  if (keys.length > 1 && ultimaClave && keys.includes(ultimaClave)) {
+    posibles = keys.filter(k => k !== ultimaClave);
+  }
+
+  const indiceAleatorio = Math.floor(Math.random() * posibles.length);
+  const claveSeleccionada = posibles[indiceAleatorio];
+  return { valor: obj[claveSeleccionada], clave: claveSeleccionada };
+}
+
+/**
+ * Si alguien responde a un mensaje enviado por el bot, responde con un mensaje aleatorio,
+ * evitando repetir el mismo mensaje dos veces seguidas.
+ * @param {Message} message - Mensaje recibido.
+ * @param {string} ultimaClaveRespuestaBot - Última clave seleccionada (para evitar repetición).
+ * @returns {Promise<string|null>} Devuelve la nueva clave seleccionada si responde, si no null.
+ */
+async function responderSiRespondenAlBot(message, ultimaClaveRespuestaBot) {
+  // Verifica si el mensaje es una respuesta y el autor del mensaje original es el bot
+  if (message.reference && message.reference.messageId && message.guild) {
+    try {
+      const originalMsg = await message.channel.messages.fetch(message.reference.messageId);
+      if (originalMsg.author.id === variables.USER_IDs.botPurgador) {
+        const resultado = funciones.obtenerMensajeAleatorio(variables.BOT_ANSWERS, ultimaClaveRespuestaBot);
+        if (resultado) {
+          await funciones.responderMensaje(message, resultado.valor);
+          return resultado.clave; // Devuelve la nueva clave seleccionada
+        }
+      }
+    } catch (error) {
+      // Ignorar si no se puede obtener el mensaje original
+    }
+  }
+  return null;
+}
+
 //Objeto con todas las funciones del archivo
 const funciones = Object.freeze({
   enviarImagen,
@@ -737,6 +785,8 @@ const funciones = Object.freeze({
   contarPalabras,
   activarActividadBios,
   desactivarActividadBios,
+  obtenerMensajeAleatorio,
+  responderSiRespondenAlBot,
 });
 
 module.exports = funciones;

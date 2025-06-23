@@ -22,9 +22,16 @@ variables.CLIENT.login(variables.TOKEN)
     console.error('❌ Error al iniciar sesión con el bot: ❌', error);
   });
 
+let ultimaClaveRespuestaBot = null; //Chapuzada máxima, no me juzguen
+
 // Evento: manejo de comandos
 variables.CLIENT.on('messageCreate', async (message) => {
   try {
+    // Responder si el mensaje es del bot o si responde al bot (No tengo dónde meterlo, queda aquí chapucero)
+    const nuevaClave = await funciones.responderSiRespondenAlBot(message, ultimaClaveRespuestaBot);
+    if (nuevaClave) {
+      ultimaClaveRespuestaBot = nuevaClave;
+    }
     // Validar si el guild existe (en caso de que el mensaje provenga de un DM)
     if (message.channel.type === 1 && message.author.id !== variables.USER_IDs.botPurgador) {
       console.log('⚠️  Mensaje recibido en DM de', message.author.username, ': ', message.content, ' ⚠️ ', funciones.formatDate(new Date()));

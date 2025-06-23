@@ -75,6 +75,19 @@ async function manejarComandos(message) {
       }
       funciones.detenerPlaylistBucle();
       break;
+    case `<@${variables.USER_IDs.botPurgador}>`:
+      if (message.content === `<@${variables.USER_IDs.botPurgador}> chambeando por lo que veo`) {
+        funciones.responderMensaje(message, 'Habló');
+        break;
+      }
+      let ultimaClave = null;
+      const mensajeRandom = funciones.obtenerMensajeAleatorio(variables.BOT_MESSAGES, ultimaClave);
+      if (mensajeRandom) {
+        // mensajeRandom.valor es el mensaje, mensajeRandom.clave es la clave seleccionada
+        ultimaClave = mensajeRandom.clave;
+      }
+      funciones.responderMensaje(message, mensajeRandom.valor);
+      break;
     default: { // Para comandos de varias palabras (y no es -borrar [parámetro]) // Se usan switches anidados porque es más eficiente que usar dos separados
       const comandoEspecial = message.content.toLowerCase();
 
@@ -89,9 +102,6 @@ async function manejarComandos(message) {
         case '-no cojan dibujo':
         case 'no cojan dibujo':
           funciones.enviarImagen(message, variables.IMAGE_PATHS.dibujo, 'Dibujante Mafioso', true);
-          break;
-        case `<@${variables.USER_IDs.botPurgador}> chambeando por lo que veo`:
-          funciones.responderMensaje(message, 'Habló');
           break;
         case 'no reaction':
           if (message.author.id === variables.USER_IDs.biosID) {

@@ -46,7 +46,7 @@ const CANAL_IDs = Object.freeze({
   checkOnline: process.env.purga,                        // ID del canal dónde comprobar quién sigue despierto a la 01:00 
   checkActivities: process.env.purga,                    // ID del canal dónde supervisar los cambios de actividad de los usuarios
   reaccion: process.env.purga,                           // ID del canal donde reaccionar
-  
+
 
   mensajesRepetitivos: process.env.mensajesRepetitivos,  //ID del canal dónde petar a usuarios para que chambeen con mensajes repetitivos
   admins: process.env.admins,                            //  ID del canal de admins
@@ -89,6 +89,34 @@ const DATA_ESCTRUCTURES = Object.freeze({
 const PLAYLISTS = Object.freeze({
   cancionesNavidad: ['navidad1', 'navidad2'], // Canciones navideñas (ampliable)
 
+});
+
+const BOT_MESSAGES = Object.freeze({
+  mensaje1: 'Dime',
+  mensaje2: '¿Qué?',
+  mensaje3: '¿Qué quieres?',
+  mensaje4: '¿Qué pasó?',
+  mensaje5: 'Qué pasa, jefe?',
+  mensaje6: 'Qué pasa chico, ¿qué quieres?',
+  mensaje7: '¿Sí?',
+  mensaje8: 'Al aparato',
+  mensaje9: 'El que viste y calza',
+  mensaje10: 'El mismísimo',
+  mensaje11: 'Alo',
+  mensaje12: 'Hola',
+  mensaje13: 'Buenos días',
+  mensaje14: '¿Qué tal?',
+});
+
+const BOT_ANSWERS= Object.freeze({
+  mensaje1: 'Tú callao',
+  mensaje2: 'Calla',
+  mensaje3: 'Shhhh',
+  mensaje4: 'No estaba hablando contigo',
+  mensaje5: '¿Qué me tienes que andar respondiendo?',
+  mensaje6: '¡Qué me tiene que decir a mi la furcia esta!',
+  mensaje7: 'Deja de andar jodiendo',
+  mensaje8: 'Tú no tienes nada que hacer, o cómo',
 });
 
 const GLOBAL_VARIABLES = { // En este objeto no se aplica Object.freeze para hacer el contenido del objeto constante (inmutable) porque son variables, en todos los demás sí se aplica por tratarse de constantes.
@@ -135,6 +163,8 @@ const variables = Object.freeze({
   REACTIONS,
   DATA_ESCTRUCTURES,
   PLAYLISTS,
+  BOT_MESSAGES,
+  BOT_ANSWERS,
   GLOBAL_VARIABLES,
   CLIENT,
 });
