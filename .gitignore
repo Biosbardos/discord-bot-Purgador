@@ -1,0 +1,12 @@
+#Ignore .env in its specific directory
+/src/helpers/resources/.env
+
+#Ignore particular photos in /assets
+/assets/avatar.png
+/assets/banner.png
+/assets/chanti.png
+/assets/cores.png
+/assets/pececin.png
+
+#Ignore .git folder of the project
+/.git
