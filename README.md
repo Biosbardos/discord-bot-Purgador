@@ -64,7 +64,7 @@ To make the bot work in a different server, you'll need to adapt the provided co
     
     or click on "Download ZIP" (you will need to unzip it somewhere in your pc)
 
-    ![Captura Repositorio de como descargar el código](capturaRepositorio.png)
+    ![Captura Repositorio de cómo descargar el código](./assets/capturaRepositorio.png)
 
 2. **Install dependencies**
    
