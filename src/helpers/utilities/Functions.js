@@ -1,9 +1,9 @@
 // Importar módulos necesarios
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder } = require('../../libraries/node_modules/discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('../../libraries/node_modules/@discordjs/voice');
-const fs = require('fs');
-const schedule = require('../../libraries/node_modules/node-schedule');
-const variables = require('./Variables');
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder } from 'discord.js';
+import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } from '@discordjs/voice';
+import fs from 'fs';
+import schedule from 'node-schedule';
+import variables from './Variables.js';
 
 // ======== FUNCIONES ========
 
@@ -789,4 +789,4 @@ const funciones = Object.freeze({
   responderSiRespondenAlBot,
 });
 
-module.exports = funciones;
+export default funciones;

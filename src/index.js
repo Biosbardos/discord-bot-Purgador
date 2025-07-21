@@ -1,7 +1,7 @@
 // Importar módulos necesarios
-const commands = require('./helpers/utilities/commands.js');
-const funciones = require('./helpers/utilities/Functions.js');
-const variables = require('./helpers/utilities/Variables.js');
+import commands from './helpers/utilities/commands.js';
+import funciones from './helpers/utilities/Functions.js';
+import variables from './helpers/utilities/Variables.js';
 
 // ======== EVENTOS DEL BOT ========
 

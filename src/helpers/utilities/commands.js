@@ -1,6 +1,6 @@
 // Importar módulos necesarios
-const funciones = require('./Functions.js');
-const variables = require('./Variables');
+import funciones from './Functions.js';
+import variables from './Variables.js';
 
 // ======== COMANDOS ========
 
@@ -123,4 +123,4 @@ const commands = Object.freeze({
   manejarComandos,
 });
 
-module.exports = commands; 
+export default commands; 

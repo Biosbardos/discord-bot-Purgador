@@ -1,6 +1,7 @@
 // Importar módulos necesarios
-const { Client, GatewayIntentBits, Partials } = require('../../libraries/node_modules/discord.js');
-require('../../libraries/node_modules/dotenv').config({ path: './helpers/resources/.env' });
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import dotenv from 'dotenv';
+dotenv.config({ path: './helpers/resources/.env' });
 
 // ======== VARIABLES Y CONFIGURACIÓN ========
 
@@ -169,4 +170,4 @@ const variables = Object.freeze({
   CLIENT,
 });
 
-module.exports = variables;
+export default variables;
