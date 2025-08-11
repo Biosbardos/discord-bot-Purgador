@@ -8,6 +8,7 @@ dotenv.config({ path: './helpers/resources/.env' });
 // ¡¡¡ EXTREMA IMPORTANCIA !!! CAMBIAR RUTAS SI SE CAMBIA DE DISPOSITIVO (ya sean absolutas o relativas puede dar lugar a error, más que nada por el nombre de usuario)
 
 const TOKEN = process.env.TOKEN; // Reemplaza con tu token
+const STEAM_API_KEY = process.env.STEAM_API_KEY; // Pon aquí tu clave de Steam
 
 const IMAGE_PATHS = Object.freeze({
   default: process.env.default,      // Imagen predeterminada para errores
@@ -154,6 +155,7 @@ const CLIENT = new Client({
 //Objeto con todas las variables (Objetos) del archivo
 const variables = Object.freeze({
   TOKEN,
+  STEAM_API_KEY,
   IMAGE_PATHS,
   AUDIO_PATHS,
   FILE_PATHS,

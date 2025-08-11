@@ -1,6 +1,6 @@
 {
   "name": "bot-discord-purgador",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "type": "module",
   "main": "index.js",
   "scripts": {
