@@ -1,6 +1,7 @@
 // Importar módulos necesarios
 import commands from './helpers/utilities/commands.js';
 import funciones from './helpers/utilities/Functions.js';
+import  getSteamPresence  from './APIs/steamAPI.js';
 import variables from './helpers/utilities/Variables.js';
 
 // ======== EVENTOS DEL BOT ========
@@ -279,6 +280,30 @@ variables.CLIENT.on('presenceUpdate', (oldPresence, newPresence) => {
       }
     }
   });
+
+  for (const member of membersInChannel.values()) {
+    const steamId = variables.DATA_ESCTRUCTURES.steamIds?.[member.id];
+    if (steamId) {
+      const presence = getSteamPresence(steamId);
+      if (presence) {
+        let estado = '';
+        switch (presence.personaState) {
+          case 0: estado = 'offline'; break;
+          case 1: estado = 'online'; break;
+          case 2: estado = 'ocupado'; break;
+          case 3: estado = 'ausente'; break;
+          case 4: estado = 'en modo snooze'; break;
+          case 5: estado = 'buscando intercambio'; break;
+          case 6: estado = 'buscando partida'; break;
+        }
+        let mensaje = `${member.user.tag} está ${estado} en Steam.`;
+        if (presence.gameExtraInfo) {
+          mensaje += ` Jugando a: ${presence.gameExtraInfo}`;
+        }
+        funciones.enviarMensajeCanalEspecifico(variables.CANAL_IDs.checkActivities, mensaje);
+      }
+    }
+  }
 
   // Si el usuario ya no está jugando, registrar cuándo dejó de jugar
   if (!isPlaying && variables.DATA_ESCTRUCTURES.activeGames.has(member.id)) {
