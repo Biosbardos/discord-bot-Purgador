@@ -110,7 +110,7 @@ const BOT_MESSAGES = Object.freeze({
   mensaje14: '¿Qué tal?',
 });
 
-const BOT_ANSWERS= Object.freeze({
+const BOT_ANSWERS = Object.freeze({
   mensaje1: 'Tú callao',
   mensaje2: 'Calla',
   mensaje3: 'Shhhh',

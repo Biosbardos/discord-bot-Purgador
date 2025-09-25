@@ -1,7 +1,8 @@
 // Importar módulos necesarios
+import { ActivityType } from 'discord.js';
 import commands from './helpers/utilities/commands.js';
 import funciones from './helpers/utilities/Functions.js';
-import  getSteamPresence  from './APIs/steamAPI.js';
+//import  getSteamPresence  from './APIs/steamAPI.js';
 import variables from './helpers/utilities/Variables.js';
 
 // ======== EVENTOS DEL BOT ========
@@ -13,6 +14,12 @@ variables.CLIENT.login(variables.TOKEN)
     variables.CLIENT.once('ready', () => {
       console.log(`✅ Bot conectado exitosamente como ${variables.CLIENT.user.username} ✅`);
       console.log(`Hora actual del sistema: ${funciones.formatDate(new Date())}`);
+
+      // Actividad personalizada
+      variables.CLIENT.user.setActivity('Purgando a los perezosos...', {type: ActivityType.Playing });
+      variables.CLIENT.user.setStatus('online');
+      console.log('Presencia y estado establecidos');
+
       //manejo caché (con función caché)
       funciones.programarEnvioDeImagen();
       funciones.programarReproducciónDeAudio();
@@ -262,7 +269,7 @@ variables.CLIENT.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!textChannel) return;
 
   // Obtener los miembros del canal
-  const membersInChannel = textChannel.members;
+  const membersInChannel = textChannel.members //.filter(m => !m.member.hasRole(variables.ROLE_IDs.toIgnore));
   if (!membersInChannel.has(member.id)) return;
 
   // Obtener las actividades actuales del usuario
